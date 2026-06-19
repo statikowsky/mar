@@ -63,7 +63,7 @@ release: clean-dist
 		goos=$${target%/*}; goarch=$${target#*/}; \
 		bin=$(BINARY); ext=""; \
 		if [ "$$goos" = "windows" ]; then bin=$(BINARY).exe; ext="zip"; else ext="tar.gz"; fi; \
-		stage=$(DIST_DIR)/$(BINARY)_$(VERSION)_$${goos}_$${goarch}; \
+		stage=$(DIST_DIR)/$(BINARY)_$${goos}_$${goarch}; \
 		archive=$$stage.$$ext; \
 		echo "building $$goos/$$goarch -> $$archive"; \
 		mkdir -p $$stage; \
