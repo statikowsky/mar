@@ -1,0 +1,269 @@
+{{define "layout"}}<!DOCTYPE html>
+<html lang="en"{{if .Theme}} data-theme="{{.Theme}}"{{end}}>
+<head>
+<meta charset="UTF-8">
+<title>{{.Title}}</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' fill='%23020817'/><text x='8' y='12' font-size='14' text-anchor='middle' fill='%23dff7ff'>%E2%89%88</text></svg>">
+<link rel="stylesheet" href="/static/style.css">
+<script>
+// Before first paint: if no explicit choice was rendered server-side, follow
+// the OS preference so the toggle icon and any JS-driven styling start correct.
+(function () {
+  var el = document.documentElement;
+  if (!el.getAttribute("data-theme")) {
+    var dark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+    el.setAttribute("data-theme", dark ? "dark" : "light");
+  }
+  // Apply accessibility prefs (text size / font / contrast) before first paint.
+  var m = document.cookie.match(/(?:^|; )a11y=([^;]*)/);
+  if (m) decodeURIComponent(m[1]).split("|").forEach(function (kv) {
+    var p = kv.split(":");
+    if (p[0] && p[1]) el.setAttribute("data-" + p[0], p[1]);
+  });
+})();
+</script>
+</head>
+<body{{if .BodyClass}} class="{{.BodyClass}}"{{end}}>
+<div class="theme-controls">
+  <button type="button" class="theme-toggle" aria-label="Toggle dark mode" title="Toggle light/dark">
+    <svg class="icon-light" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+    </svg>
+    <svg class="icon-dark" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="4"/>
+      <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+    </svg>
+  </button>
+  <button type="button" class="theme-cog" aria-label="Choose color scheme" aria-haspopup="true" aria-expanded="false" title="Color scheme">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="3"/>
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+    </svg>
+  </button>
+  <button type="button" class="theme-cog a11y-toggle" aria-label="Accessibility options" aria-haspopup="true" aria-expanded="false" title="Accessibility">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="12" cy="3.8" r="1.3"/>
+      <path d="M4.5 7.5h15M9 21l3-9 3 9M12 12V8"/>
+    </svg>
+  </button>
+</div>
+<div class="theme-menu" id="theme-menu" role="menu" hidden></div>
+<div class="theme-menu a11y-menu" id="a11y-menu" role="menu" hidden>
+  <div class="group-label">Text size</div>
+  <button type="button" role="menuitemradio" class="scheme" data-a11y="text" data-val="small"><span class="check" aria-hidden="true">✓</span><span class="label">Small</span></button>
+  <button type="button" role="menuitemradio" class="scheme" data-a11y="text" data-val="normal"><span class="check" aria-hidden="true">✓</span><span class="label">Normal</span></button>
+  <button type="button" role="menuitemradio" class="scheme" data-a11y="text" data-val="large"><span class="check" aria-hidden="true">✓</span><span class="label">Large</span></button>
+  <button type="button" role="menuitemradio" class="scheme" data-a11y="text" data-val="xlarge"><span class="check" aria-hidden="true">✓</span><span class="label">Larger</span></button>
+  <hr>
+  <div class="group-label">Font</div>
+  <button type="button" role="menuitemradio" class="scheme" data-a11y="font" data-val="inter"><span class="check" aria-hidden="true">✓</span><span class="label">Inter</span></button>
+  <button type="button" role="menuitemradio" class="scheme" data-a11y="font" data-val="system"><span class="check" aria-hidden="true">✓</span><span class="label">System</span></button>
+  <button type="button" role="menuitemradio" class="scheme" data-a11y="font" data-val="serif"><span class="check" aria-hidden="true">✓</span><span class="label">Serif</span></button>
+  <button type="button" role="menuitemradio" class="scheme" data-a11y="font" data-val="mono"><span class="check" aria-hidden="true">✓</span><span class="label">Monospace</span></button>
+  <button type="button" role="menuitemradio" class="scheme" data-a11y="font" data-val="dyslexic"><span class="check" aria-hidden="true">✓</span><span class="label">OpenDyslexic</span></button>
+  <hr>
+  <div class="group-label">Contrast</div>
+  <button type="button" role="menuitemradio" class="scheme" data-a11y="contrast" data-val="normal"><span class="check" aria-hidden="true">✓</span><span class="label">Normal</span></button>
+  <button type="button" role="menuitemradio" class="scheme" data-a11y="contrast" data-val="high"><span class="check" aria-hidden="true">✓</span><span class="label">High contrast</span></button>
+</div>
+{{if .ProjectName}}<div class="project-path" title="Project directory">{{.ProjectName}}{{if .Version}} · mar {{.Version}}{{end}}</div>{{end}}
+{{template "content" .}}
+<script>
+// Color schemes: a quick light/dark toggle plus a cog-launched picker. The
+// active scheme is written to the `theme` cookie so the server renders the same
+// scheme (no flash) on the next load. The toggle remembers the last-used scheme
+// per mode in localStorage so flipping back returns you to e.g. Gruvbox Dark.
+(function () {
+  // Keep ids/modes in sync with static/style.css and server.go's knownThemes.
+  var SCHEMES = [
+    { id: "light",           name: "Light",            mode: "light", swatch: "#fafaf7" },
+    { id: "github-light",    name: "GitHub Light",     mode: "light", swatch: "#ffffff" },
+    { id: "gruvbox-light",   name: "Gruvbox Light",    mode: "light", swatch: "#fbf1c7" },
+    { id: "solarized-light", name: "Solarized Light",  mode: "light", swatch: "#fdf6e3" },
+    { id: "dark",            name: "Catppuccin Mocha", mode: "dark",  swatch: "#1e1e2e" },
+    { id: "gruvbox-dark",    name: "Gruvbox Dark",     mode: "dark",  swatch: "#282828" },
+    { id: "solarized-dark",  name: "Solarized Dark",   mode: "dark",  swatch: "#002b36" },
+    { id: "dracula",         name: "Dracula",          mode: "dark",  swatch: "#282a36" },
+    { id: "nord",            name: "Nord",             mode: "dark",  swatch: "#2e3440" },
+  ];
+  var byId = {};
+  SCHEMES.forEach(function (s) { byId[s.id] = s; });
+  var el = document.documentElement;
+
+  function currentScheme() {
+    var id = el.getAttribute("data-theme");
+    return byId[id] ? id : "light";
+  }
+  function currentMode() {
+    var s = byId[currentScheme()];
+    return s ? s.mode : "light";
+  }
+  // Apply a scheme: set data-theme, persist the cookie (server render), and
+  // remember it as the preferred scheme for its mode.
+  function apply(id) {
+    var s = byId[id];
+    if (!s) return;
+    el.setAttribute("data-theme", id);
+    document.cookie = "theme=" + id + ";path=/;max-age=31536000;samesite=lax";
+    try { localStorage.setItem("theme-" + s.mode, id); } catch (e) { /* ignore */ }
+    renderMenu();
+  }
+  function preferredFor(mode) {
+    var stored;
+    try { stored = localStorage.getItem("theme-" + mode); } catch (e) { /* ignore */ }
+    if (stored && byId[stored] && byId[stored].mode === mode) return stored;
+    return mode === "dark" ? "dark" : "light";
+  }
+
+  // Toggle: switch to the other mode's preferred scheme.
+  var toggle = document.querySelector(".theme-toggle");
+  if (toggle) {
+    toggle.addEventListener("click", function () {
+      apply(preferredFor(currentMode() === "dark" ? "light" : "dark"));
+    });
+  }
+
+  // Cog picker.
+  var cog = document.querySelector(".theme-cog");
+  var menu = document.getElementById("theme-menu");
+
+  function renderMenu() {
+    if (!menu) return;
+    var active = currentScheme();
+    var parts = [];
+    ["light", "dark"].forEach(function (mode, i) {
+      if (i) parts.push("<hr>");
+      parts.push('<div class="group-label">' + (mode === "light" ? "Light" : "Dark") + "</div>");
+      SCHEMES.filter(function (s) { return s.mode === mode; }).forEach(function (s) {
+        parts.push(
+          '<button type="button" role="menuitemradio" class="scheme' + (s.id === active ? " active" : "") +
+          '" data-scheme="' + s.id + '" aria-checked="' + (s.id === active) + '">' +
+          '<span class="check" aria-hidden="true">✓</span>' +
+          '<span class="swatch" style="background:' + s.swatch + '"></span>' +
+          '<span class="label">' + s.name + "</span></button>"
+        );
+      });
+    });
+    menu.innerHTML = parts.join("");
+  }
+
+  function openMenu() {
+    if (!menu) return;
+    renderMenu();
+    menu.hidden = false;
+    if (cog) cog.setAttribute("aria-expanded", "true");
+  }
+  function closeMenu() {
+    if (!menu) return;
+    menu.hidden = true;
+    if (cog) cog.setAttribute("aria-expanded", "false");
+  }
+
+  if (cog && menu) {
+    cog.addEventListener("click", function (e) {
+      e.stopPropagation();
+      if (menu.hidden) openMenu(); else closeMenu();
+    });
+    menu.addEventListener("click", function (e) {
+      var btn = e.target.closest("button.scheme");
+      if (!btn) return;
+      apply(btn.dataset.scheme);
+      closeMenu();
+    });
+    document.addEventListener("click", function (e) {
+      if (!menu.hidden && !menu.contains(e.target) && e.target !== cog) closeMenu();
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && !menu.hidden) closeMenu();
+    });
+  }
+
+  // Seed the per-mode memory from whatever scheme loaded, so the first toggle
+  // doesn't forget a non-default current scheme.
+  try {
+    var cur = byId[currentScheme()];
+    if (cur && !localStorage.getItem("theme-" + cur.mode)) {
+      localStorage.setItem("theme-" + cur.mode, cur.id);
+    }
+  } catch (e) { /* ignore */ }
+})();
+</script>
+<script>
+// Accessibility picker: text size, font, and contrast. Stored in one `a11y`
+// cookie (key:val pairs) so the pre-paint head script can apply prefs before
+// first render. Only non-default values are stored; absence means default.
+(function () {
+  var el = document.documentElement;
+  var DEFAULTS = { text: "normal", font: "inter", contrast: "normal" };
+  function read() {
+    var s = { text: "normal", font: "inter", contrast: "normal" };
+    var m = document.cookie.match(/(?:^|; )a11y=([^;]*)/);
+    if (m) decodeURIComponent(m[1]).split("|").forEach(function (kv) {
+      var p = kv.split(":"); if (p[0] && p[1]) s[p[0]] = p[1];
+    });
+    return s;
+  }
+  function save(s) {
+    var parts = [];
+    Object.keys(s).forEach(function (k) { if (s[k] !== DEFAULTS[k]) parts.push(k + ":" + s[k]); });
+    document.cookie = "a11y=" + encodeURIComponent(parts.join("|")) + ";path=/;max-age=31536000;samesite=lax";
+  }
+  function apply(s) {
+    Object.keys(DEFAULTS).forEach(function (k) {
+      if (s[k] === DEFAULTS[k]) el.removeAttribute("data-" + k);
+      else el.setAttribute("data-" + k, s[k]);
+    });
+  }
+  var menu = document.getElementById("a11y-menu");
+  var btn = document.querySelector(".a11y-toggle");
+  if (!menu || !btn) return;
+  function refresh() {
+    var s = read();
+    menu.querySelectorAll("button.scheme").forEach(function (b) {
+      var on = s[b.dataset.a11y] === b.dataset.val;
+      b.classList.toggle("active", on);
+      b.setAttribute("aria-checked", on ? "true" : "false");
+    });
+  }
+  function close() { menu.hidden = true; btn.setAttribute("aria-expanded", "false"); }
+  btn.addEventListener("click", function (e) {
+    e.stopPropagation();
+    var tm = document.getElementById("theme-menu"); if (tm) tm.hidden = true;
+    if (menu.hidden) { refresh(); menu.hidden = false; btn.setAttribute("aria-expanded", "true"); }
+    else close();
+  });
+  menu.addEventListener("click", function (e) {
+    var b = e.target.closest("button.scheme"); if (!b) return;
+    var s = read(); s[b.dataset.a11y] = b.dataset.val;
+    save(s); apply(s); refresh();
+  });
+  document.addEventListener("click", function (e) {
+    if (!menu.hidden && !menu.contains(e.target) && e.target !== btn) close();
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && !menu.hidden) close();
+  });
+})();
+</script>
+<script>
+// Live-reload by polling a lightweight version endpoint. Unlike a held-open
+// SSE stream, each poll is a normal short request that never occupies one of
+// the browser's per-origin connection slots, so many tabs stay responsive.
+(function () {
+  let known = null;
+  async function poll() {
+    try {
+      const r = await fetch("/events/version", { cache: "no-store" });
+      if (r.ok) {
+        const data = await r.json();
+        if (known === null) known = data.version;
+        else if (data.version !== known) { location.reload(); return; }
+      }
+    } catch (e) { /* server gone or transient; keep polling */ }
+    setTimeout(poll, 2000);
+  }
+  poll();
+})();
+</script>
+</body>
+</html>{{end}}

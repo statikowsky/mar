@@ -1,0 +1,33 @@
+name: release
+
+# Build and publish per-OS binaries when a version tag is pushed.
+#   git tag v0.1.0 && git push origin v0.1.0
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write # create the GitHub Release and upload assets
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # full history so `git describe` resolves the tag
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+
+      # Pure Go (no cgo) means one runner cross-compiles every target.
+      - name: Build release archives
+        run: make release VERSION=${{ github.ref_name }}
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true

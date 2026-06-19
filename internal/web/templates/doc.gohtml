@@ -1,0 +1,135 @@
+{{define "content"}}
+<p class="subtitle"><a href="/">&larr; back to docs</a></p>
+<h1>{{.Doc.Title}}</h1>
+<p class="meta">{{.Doc.Code}} · <span class="typetag {{.Doc.Type}}">{{.Doc.Type}}</span> · updated {{.Updated}}{{if eq .Doc.Status "archived"}} · <span class="archived-tag">archived</span>{{end}}</p>
+<p class="doc-actions">
+  {{if eq .Doc.Status "archived"}}
+  <button class="docact" data-code="{{.Doc.Code}}" data-action="unarchive">Unarchive</button>
+  <button class="docact danger" data-code="{{.Doc.Code}}" data-action="delete">Delete</button>
+  {{else}}
+  <button class="docact" data-code="{{.Doc.Code}}" data-action="edit">Edit</button>
+  <button class="docact" data-code="{{.Doc.Code}}" data-action="archive">Archive</button>
+  {{end}}
+</p>
+<div class="rendered-body">{{.Body}}</div>
+{{if ne .Doc.Status "archived"}}
+<form class="inline-editor" data-code="{{.Doc.Code}}" hidden>
+  <div class="editor-head">
+    <input class="edit-title" type="text" name="title" value="{{.Doc.Title}}" aria-label="Title">
+    <select class="edit-type" name="type" aria-label="Type">
+      {{range .DocTypes}}<option value="{{.}}"{{if eq . $.Doc.Type}} selected{{end}}>{{.}}</option>{{end}}
+    </select>
+  </div>
+  <div class="editor-panes">
+    <textarea class="edit-body" name="body" aria-label="Body (Markdown)" spellcheck="false">{{.Doc.Body}}</textarea>
+    <div class="edit-preview rendered-body" aria-label="Preview">{{.Body}}</div>
+  </div>
+  <div class="editor-actions">
+    <button type="submit" class="docact primary">Save</button>
+    <button type="button" class="docact" data-action="cancel">Cancel</button>
+  </div>
+</form>
+{{end}}
+{{if .Tasks}}
+<h2>Related tasks</h2>
+<ul>
+  {{range .Tasks}}<li><a href="/task/{{.Code}}">{{.Code}}</a> — {{.Title}} <span class="pill p2">{{.ColumnName}}</span></li>{{end}}
+</ul>
+{{end}}
+{{if .Backlinks}}
+<h2>Referenced by</h2>
+<ul>
+  {{range .Backlinks}}<li><a href="/{{if eq .Kind "task"}}task{{else}}doc{{end}}/{{.Code}}">{{.Code}}</a> — {{.Title}}</li>{{end}}
+</ul>
+{{end}}
+
+<script>
+// Archive / unarchive / delete actions.
+document.querySelectorAll("button.docact").forEach(function (btn) {
+  const action = btn.dataset.action;
+  if (action !== "archive" && action !== "unarchive" && action !== "delete") return;
+  btn.addEventListener("click", function () {
+    const code = btn.dataset.code;
+    if (action === "delete" &&
+        !confirm("Permanently delete " + code + "? This cannot be undone.")) {
+      return;
+    }
+    fetch("/doc/" + encodeURIComponent(code) + "/" + action, { method: "POST" })
+      .then(function (resp) {
+        if (resp.ok) location.href = action === "delete" ? "/" : location.href;
+        else resp.text().then(function (t) { alert(t || ("Failed to " + action)); });
+      })
+      .catch(function () { alert("Request failed"); });
+  });
+});
+
+// Inline editor: Edit reveals the split-pane form; Save persists and reloads.
+(function () {
+  const form = document.querySelector("form.inline-editor");
+  if (!form) return;
+  const code = form.dataset.code;
+  const editBtn = document.querySelector("button.docact[data-action='edit']");
+  const cancelBtn = form.querySelector("button[data-action='cancel']");
+  const actions = document.querySelector(".doc-actions");
+  const readView = document.querySelector(".rendered-body:not(.edit-preview)");
+  let dirty = false;
+
+  function show(on) {
+    form.hidden = !on;
+    if (readView) readView.hidden = on;
+    if (actions) actions.hidden = on;
+    if (on) { dirty = false; form.querySelector(".edit-body").focus(); }
+  }
+
+  // Debounced server-side preview (keeps parity with the real renderer: alerts, syntax highlighting).
+  let timer = null;
+  function schedulePreview() {
+    clearTimeout(timer);
+    timer = setTimeout(function () {
+      fetch("/preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ body: form.querySelector(".edit-body").value }),
+      })
+        .then(function (resp) { return resp.ok ? resp.text() : null; })
+        .then(function (html) {
+          if (html != null) form.querySelector(".edit-preview").innerHTML = html;
+        })
+        .catch(function () { /* transient; leave last preview */ });
+    }, 300);
+  }
+
+  if (editBtn) editBtn.addEventListener("click", function () { show(true); });
+  cancelBtn.addEventListener("click", function () {
+    if (dirty && !confirm("Discard your changes?")) return;
+    dirty = false;
+    show(false);
+  });
+  form.addEventListener("input", function (e) {
+    dirty = true;
+    if (e.target.classList.contains("edit-body")) schedulePreview();
+  });
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+    fetch("/doc/" + encodeURIComponent(code) + "/edit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: form.querySelector(".edit-title").value,
+        type: form.querySelector(".edit-type").value,
+        body: form.querySelector(".edit-body").value,
+      }),
+    })
+      .then(function (resp) {
+        if (!resp.ok) return resp.text().then(function (t) { throw new Error(t || "Save failed"); });
+        dirty = false;
+        location.reload();
+      })
+      .catch(function (err) { alert(err.message || "Save failed"); });
+  });
+  window.addEventListener("beforeunload", function (e) {
+    if (dirty) { e.preventDefault(); e.returnValue = ""; }
+  });
+})();
+</script>
+{{end}}

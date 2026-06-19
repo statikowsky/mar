@@ -1,0 +1,79 @@
+{{define "content"}}
+<p class="subtitle"><a href="/">&larr; back to docs</a></p>
+<h1>New document</h1>
+<form class="inline-editor" id="doc-create">
+  <div class="editor-head">
+    <input class="edit-code" type="text" name="code" placeholder="CODE" aria-label="Code" spellcheck="false">
+    <input class="edit-title" type="text" name="title" placeholder="Title" aria-label="Title" autofocus>
+    <select class="edit-type" name="type" aria-label="Type">
+      {{range .DocTypes}}<option value="{{.}}">{{.}}</option>{{end}}
+    </select>
+  </div>
+  <div class="editor-panes">
+    <textarea class="edit-body" name="body" aria-label="Body (Markdown)" spellcheck="false"></textarea>
+    <div class="edit-preview rendered-body" aria-label="Preview"></div>
+  </div>
+  <div class="editor-actions">
+    <button type="submit" class="docact primary">Create</button>
+    <a class="docact" href="/">Cancel</a>
+  </div>
+</form>
+
+<script>
+(function () {
+  const form = document.getElementById("doc-create");
+  const codeEl = form.querySelector(".edit-code");
+  const titleEl = form.querySelector(".edit-title");
+  const bodyEl = form.querySelector(".edit-body");
+
+  // Auto-fill the code from a slug of the title, until the user edits code
+  // themselves — after that the code stays manual.
+  let codeManual = false;
+  codeEl.addEventListener("input", function () { codeManual = true; });
+  function slug(s) {
+    return s.toUpperCase().replace(/[^A-Z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  }
+  titleEl.addEventListener("input", function () {
+    if (!codeManual) codeEl.value = slug(titleEl.value);
+  });
+
+  // Debounced server-side preview (parity with the real renderer).
+  let timer = null;
+  bodyEl.addEventListener("input", function () {
+    clearTimeout(timer);
+    timer = setTimeout(function () {
+      fetch("/preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ body: bodyEl.value }),
+      })
+        .then(function (resp) { return resp.ok ? resp.text() : null; })
+        .then(function (html) {
+          if (html != null) form.querySelector(".edit-preview").innerHTML = html;
+        })
+        .catch(function () { /* transient; leave last preview */ });
+    }, 300);
+  });
+
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+    fetch("/doc", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        code: codeEl.value,
+        title: titleEl.value,
+        type: form.querySelector(".edit-type").value,
+        body: bodyEl.value,
+      }),
+    })
+      .then(function (resp) {
+        if (!resp.ok) return resp.text().then(function (t) { throw new Error(t || "Create failed"); });
+        return resp.json();
+      })
+      .then(function (data) { location.href = "/doc/" + encodeURIComponent(data.code); })
+      .catch(function (err) { alert(err.message || "Create failed"); });
+  });
+})();
+</script>
+{{end}}

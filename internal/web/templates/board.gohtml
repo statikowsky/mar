@@ -1,0 +1,334 @@
+{{define "content"}}
+<h1>Board</h1>
+<p class="subtitle"><a href="/">&larr; back to docs</a></p>
+<p class="doc-actions"><button type="button" id="new-card" class="taskact primary">New card</button></p>
+<div class="board">
+  {{range .Columns}}
+  <div class="board-col" data-column="{{.Name}}">
+    <h3>{{.Name}}</h3>
+    {{range .Tasks}}
+    <a class="task-card" href="/task/{{.Code}}" draggable="true" data-code="{{.Code}}">
+      <span class="tcode">{{.Code}}</span>
+      <div class="ttitle">{{.Title}}</div>
+      {{range .DocCodes}}<span class="pill p2">{{.}}</span> {{end}}
+    </a>
+    {{end}}
+  </div>
+  {{end}}
+</div>
+
+{{if .Archived}}
+<details class="archived-section">
+  <summary>Archived ({{len .Archived}})</summary>
+  <table class="toc">
+    <tr><th>Code</th><th style="width:50%">Card</th><th>Column</th><th></th></tr>
+    {{range .Archived}}
+    <tr class="archived">
+      <td class="code">{{.Code}}</td>
+      <td><a href="/task/{{.Code}}">{{.Title}}</a></td>
+      <td>{{.ColumnName}}</td>
+      <td class="actions">
+        <button class="taskact" data-code="{{.Code}}" data-action="unarchive">Unarchive</button>
+        <button class="taskact danger" data-code="{{.Code}}" data-action="delete">Delete</button>
+      </td>
+    </tr>
+    {{end}}
+  </table>
+</details>
+{{end}}
+
+<div class="modal-backdrop" id="task-modal" hidden>
+  <div class="modal" role="dialog" aria-modal="true">
+    <button class="modal-close" type="button" aria-label="Close">&times;</button>
+    <div class="modal-body"></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  let dragging = null;
+
+  document.querySelectorAll(".task-card").forEach(function (card) {
+    card.addEventListener("dragstart", function (e) {
+      dragging = card;
+      card.classList.add("dragging");
+      e.dataTransfer.effectAllowed = "move";
+    });
+    card.addEventListener("dragend", function () {
+      if (dragging) dragging.classList.remove("dragging");
+      dragging = null;
+    });
+    card.addEventListener("click", function (e) {
+      // A drag must not also fire the card's click.
+      if (card.dataset.suppressClick) {
+        e.preventDefault();
+        delete card.dataset.suppressClick;
+        return;
+      }
+      // Let modified clicks (open-in-new-tab etc.) use the plain link.
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      e.preventDefault();
+      openModal(card.dataset.code);
+    });
+  });
+
+  // Insertion point: the card after which the dragged card should land.
+  function cardAfterPoint(col, y) {
+    const cards = [].slice.call(col.querySelectorAll(".task-card:not(.dragging)"));
+    let after = null;
+    for (const c of cards) {
+      const box = c.getBoundingClientRect();
+      if (y >= box.top + box.height / 2) after = c;
+      else break;
+    }
+    return after;
+  }
+
+  document.querySelectorAll(".board-col").forEach(function (col) {
+    col.addEventListener("dragover", function (e) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
+      if (!dragging) return;
+      const after = cardAfterPoint(col, e.clientY);
+      if (after == null) {
+        const first = col.querySelector(".task-card:not(.dragging)");
+        if (first) col.insertBefore(dragging, first);
+        else col.appendChild(dragging);
+      } else {
+        after.parentNode.insertBefore(dragging, after.nextSibling);
+      }
+    });
+
+    col.addEventListener("drop", function (e) {
+      e.preventDefault();
+      if (!dragging) return;
+      const card = dragging;
+      card.dataset.suppressClick = "1";
+      const column = col.dataset.column;
+      const prev = card.previousElementSibling;
+      const afterCode = prev && prev.classList.contains("task-card") ? prev.dataset.code : null;
+      const body = { column: column };
+      if (afterCode) body.after = afterCode;
+      fetch("/task/" + encodeURIComponent(card.dataset.code) + "/move", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      }).then(function (resp) {
+        if (!resp.ok) location.reload(); // revert to server truth on failure
+      }).catch(function () {
+        location.reload();
+      });
+    });
+  });
+
+  // --- Task modal ---
+  const modal = document.getElementById("task-modal");
+  const modalBody = modal.querySelector(".modal-body");
+  // True when the inline editor has unsaved changes; guards modal close.
+  let editorDirty = false;
+
+  function openModal(code) {
+    fetch("/task/" + encodeURIComponent(code) + "?fragment=1")
+      .then(function (resp) {
+        if (!resp.ok) throw new Error("not found");
+        return resp.text();
+      })
+      .then(function (html) {
+        modalBody.innerHTML = html;
+        modal.hidden = false;
+        if (location.hash !== "#task/" + code) {
+          history.pushState(null, "", "#task/" + code);
+        }
+      })
+      .catch(function () { /* unknown code: leave board as-is */ });
+  }
+
+  // Open the create-card editor (no code yet) in the same modal.
+  function openNewModal() {
+    fetch("/task/new?fragment=1")
+      .then(function (resp) {
+        if (!resp.ok) throw new Error("failed");
+        return resp.text();
+      })
+      .then(function (html) {
+        modalBody.innerHTML = html;
+        modal.hidden = false;
+        editorDirty = false;
+        const t = modalBody.querySelector(".edit-title");
+        if (t) t.focus();
+      })
+      .catch(function () { /* leave board as-is */ });
+  }
+  document.getElementById("new-card").addEventListener("click", openNewModal);
+
+  function closeModal() {
+    // Guard against losing in-progress edits.
+    if (editorDirty && !confirm("Discard your changes?")) return;
+    editorDirty = false;
+    modal.hidden = true;
+    modalBody.innerHTML = "";
+    if (location.hash.indexOf("#task/") === 0) {
+      history.pushState(null, "", location.pathname);
+    }
+  }
+
+  modal.querySelector(".modal-close").addEventListener("click", closeModal);
+  modal.addEventListener("click", function (e) {
+    if (e.target === modal) closeModal(); // backdrop click
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && !modal.hidden) closeModal();
+  });
+
+  // Deep-link: open the card named in the URL hash on load and on back/forward.
+  function openFromHash() {
+    const m = location.hash.match(/^#task\/(.+)$/);
+    if (m) openModal(decodeURIComponent(m[1]));
+    else if (!modal.hidden) closeModal();
+  }
+  window.addEventListener("popstate", openFromHash);
+  openFromHash();
+
+  // Delegated handler for archive/unarchive/delete buttons, both in the
+  // archived section and inside the modal-injected task fragment. (Edit/cancel
+  // and the editor's Save are handled separately, below.)
+  document.addEventListener("click", function (e) {
+    const btn = e.target.closest("button.taskact");
+    if (!btn) return;
+    const action = btn.dataset.action;
+    if (action !== "archive" && action !== "unarchive" && action !== "delete") return;
+    const code = btn.dataset.code;
+    if (action === "delete" &&
+        !confirm("Permanently delete " + code + "? This cannot be undone.")) {
+      return;
+    }
+    fetch("/task/" + encodeURIComponent(code) + "/" + action, { method: "POST" })
+      .then(function (resp) {
+        if (resp.ok) location.reload();
+        else resp.text().then(function (t) { alert(t || ("Failed to " + action)); });
+      })
+      .catch(function () { alert("Request failed"); });
+  });
+
+  // --- Inline card editor (modal only) ---
+  // The task fragment carries a read view (.rendered-body + actions) and a
+  // hidden <form.inline-editor>. Edit shows the form; Cancel/Save hide it.
+  function currentEditor() {
+    return modalBody.querySelector("form.inline-editor");
+  }
+  function showEditor(show) {
+    const form = currentEditor();
+    if (!form) return;
+    form.hidden = !show;
+    modalBody.querySelectorAll(".rendered-body:not(.edit-preview)").forEach(function (el) {
+      el.hidden = show;
+    });
+    const actions = modalBody.querySelector(".doc-actions");
+    if (actions) actions.hidden = show;
+    if (show) {
+      editorDirty = false;
+      form.querySelector(".edit-body").focus();
+    }
+  }
+
+  // Debounced server-side preview (keeps parity with the real renderer: alerts, syntax highlighting).
+  let previewTimer = null;
+  function schedulePreview(form) {
+    clearTimeout(previewTimer);
+    previewTimer = setTimeout(function () {
+      fetch("/preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ body: form.querySelector(".edit-body").value }),
+      })
+        .then(function (resp) { return resp.ok ? resp.text() : null; })
+        .then(function (html) {
+          if (html != null) form.querySelector(".edit-preview").innerHTML = html;
+        })
+        .catch(function () { /* transient; leave last preview */ });
+    }, 300);
+  }
+
+  // Open the editor.
+  document.addEventListener("click", function (e) {
+    const btn = e.target.closest("button.taskact[data-action='edit']");
+    if (!btn) return;
+    e.preventDefault();
+    showEditor(true);
+  });
+
+  // Cancel: re-fetch the fragment to discard edits and restore the read view.
+  document.addEventListener("click", function (e) {
+    const btn = e.target.closest("button.taskact[data-action='cancel']");
+    if (!btn) return;
+    e.preventDefault();
+    const form = currentEditor();
+    if (form && editorDirty &&
+        !confirm("Discard your changes?")) {
+      return;
+    }
+    editorDirty = false;
+    if (form && form.dataset.create) closeModal();
+    else if (form) reloadFragment(form.dataset.code);
+  });
+
+  // Mark dirty + refresh preview as the user types.
+  modalBody.addEventListener("input", function (e) {
+    const form = e.target.closest("form.inline-editor");
+    if (!form) return;
+    editorDirty = true;
+    if (e.target.classList.contains("edit-body")) schedulePreview(form);
+  });
+
+  // Save: POST title+body, swap the returned fragment back into the modal.
+  modalBody.addEventListener("submit", function (e) {
+    const form = e.target.closest("form.inline-editor");
+    if (!form) return;
+    e.preventDefault();
+    // Create mode: POST a new card, then reload the board so it appears.
+    if (form.dataset.create === "task") {
+      fetch("/task", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: form.querySelector(".edit-title").value,
+          body: form.querySelector(".edit-body").value,
+        }),
+      })
+        .then(function (resp) {
+          if (!resp.ok) return resp.text().then(function (t) { throw new Error(t || "Create failed"); });
+          editorDirty = false;
+          location.reload();
+        })
+        .catch(function (err) { alert(err.message || "Create failed"); });
+      return;
+    }
+    const code = form.dataset.code;
+    fetch("/task/" + encodeURIComponent(code) + "/edit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: form.querySelector(".edit-title").value,
+        body: form.querySelector(".edit-body").value,
+      }),
+    })
+      .then(function (resp) {
+        if (!resp.ok) return resp.text().then(function (t) { throw new Error(t || "Save failed"); });
+        return resp.text();
+      })
+      .then(function (html) {
+        editorDirty = false;
+        modalBody.innerHTML = html;
+      })
+      .catch(function (err) { alert(err.message || "Save failed"); });
+  });
+
+  function reloadFragment(code) {
+    fetch("/task/" + encodeURIComponent(code) + "?fragment=1")
+      .then(function (resp) { return resp.ok ? resp.text() : null; })
+      .then(function (html) { if (html != null) modalBody.innerHTML = html; })
+      .catch(function () { /* leave as-is */ });
+  }
+})();
+</script>
+{{end}}

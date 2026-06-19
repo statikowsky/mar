@@ -1,0 +1,65 @@
+{{define "content"}}
+<h1>{{.Repo}}</h1>
+<p class="subtitle">Documentation repository</p>
+
+<h2>Start here</h2>
+<a class="dcard" href="/board">
+  <div class="title"><span class="cardcode">BOARD</span>Kanban board</div>
+  <p class="desc">Work in flight across columns.</p>
+</a>
+
+<h2>Contents</h2>
+<p class="doc-actions"><a class="docact primary" href="/doc/new">New document</a></p>
+<table class="toc">
+  <tr><th>Code</th><th style="width:50%">Document</th><th>Type</th><th>Updated</th><th></th></tr>
+  {{range .Docs}}
+  <tr>
+    <td class="code">{{.Code}}</td>
+    <td><a href="/doc/{{.Code}}">{{.Title}}</a></td>
+    <td><span class="typetag {{.Type}}">{{.Type}}</span></td>
+    <td class="date">{{.Updated}}</td>
+    <td class="actions"><button class="docact" data-code="{{.Code}}" data-action="archive">Archive</button></td>
+  </tr>
+  {{end}}
+</table>
+
+{{if .Archived}}
+<details class="archived-section">
+  <summary>Archived ({{len .Archived}})</summary>
+  <table class="toc">
+    <tr><th>Code</th><th style="width:50%">Document</th><th>Type</th><th>Updated</th><th></th></tr>
+    {{range .Archived}}
+    <tr class="archived">
+      <td class="code">{{.Code}}</td>
+      <td><a href="/doc/{{.Code}}">{{.Title}}</a></td>
+      <td><span class="typetag {{.Type}}">{{.Type}}</span></td>
+      <td class="date">{{.Updated}}</td>
+      <td class="actions">
+        <button class="docact" data-code="{{.Code}}" data-action="unarchive">Unarchive</button>
+        <button class="docact danger" data-code="{{.Code}}" data-action="delete">Delete</button>
+      </td>
+    </tr>
+    {{end}}
+  </table>
+</details>
+{{end}}
+
+<script>
+document.querySelectorAll("button.docact").forEach(function (btn) {
+  btn.addEventListener("click", function () {
+    const code = btn.dataset.code;
+    const action = btn.dataset.action;
+    if (action === "delete" &&
+        !confirm("Permanently delete " + code + "? This cannot be undone.")) {
+      return;
+    }
+    fetch("/doc/" + encodeURIComponent(code) + "/" + action, { method: "POST" })
+      .then(function (resp) {
+        if (resp.ok) location.reload();
+        else resp.text().then(function (t) { alert(t || ("Failed to " + action)); });
+      })
+      .catch(function () { alert("Request failed"); });
+  });
+});
+</script>
+{{end}}

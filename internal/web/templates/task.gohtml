@@ -1,0 +1,56 @@
+{{define "content"}}
+<p class="subtitle"><a href="/board">&larr; back to board</a></p>
+<h1>{{.Task.Title}}</h1>
+<p class="meta">{{.Task.Code}} · {{.ColumnName}}{{if eq .Task.Status "archived"}} · <span class="archived-tag">archived</span>{{end}}</p>
+<p class="doc-actions">
+  {{if eq .Task.Status "archived"}}
+  <button class="taskact" data-code="{{.Task.Code}}" data-action="unarchive">Unarchive</button>
+  <button class="taskact danger" data-code="{{.Task.Code}}" data-action="delete">Delete</button>
+  {{else}}
+  {{if .Modal}}<button class="taskact" data-code="{{.Task.Code}}" data-action="edit">Edit</button>{{end}}
+  <button class="taskact" data-code="{{.Task.Code}}" data-action="archive">Archive</button>
+  {{end}}
+</p>
+<div class="rendered-body">{{.Body}}</div>
+{{if and .Modal (ne .Task.Status "archived")}}
+<form class="inline-editor" data-code="{{.Task.Code}}" hidden>
+  <input class="edit-title" type="text" name="title" value="{{.Task.Title}}" aria-label="Title">
+  <div class="editor-panes">
+    <textarea class="edit-body" name="body" aria-label="Body (Markdown)" spellcheck="false">{{.Task.Body}}</textarea>
+    <div class="edit-preview rendered-body" aria-label="Preview">{{.Body}}</div>
+  </div>
+  <div class="editor-actions">
+    <button type="submit" class="taskact primary">Save</button>
+    <button type="button" class="taskact" data-action="cancel">Cancel</button>
+  </div>
+</form>
+{{end}}
+{{if .Docs}}
+<h2>Linked documents</h2>
+<ul>
+  {{range .Docs}}<li><a href="/doc/{{.Code}}">{{.Code}}</a> — {{.Title}}</li>{{end}}
+</ul>
+{{end}}
+
+<script>
+// Standalone task page: wire the action buttons. (When this template is loaded
+// as a modal fragment via innerHTML the board page handles clicks instead, and
+// this script does not execute.)
+document.querySelectorAll("button.taskact").forEach(function (btn) {
+  btn.addEventListener("click", function () {
+    const code = btn.dataset.code;
+    const action = btn.dataset.action;
+    if (action === "delete" &&
+        !confirm("Permanently delete " + code + "? This cannot be undone.")) {
+      return;
+    }
+    fetch("/task/" + encodeURIComponent(code) + "/" + action, { method: "POST" })
+      .then(function (resp) {
+        if (resp.ok) location.href = action === "delete" ? "/board" : location.href;
+        else resp.text().then(function (t) { alert(t || ("Failed to " + action)); });
+      })
+      .catch(function () { alert("Request failed"); });
+  });
+});
+</script>
+{{end}}
