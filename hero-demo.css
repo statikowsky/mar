@@ -1,0 +1,314 @@
+/* First-screen synchronized CLI + browser demo. Palette mirrors mar's app
+   (warm neutrals + brand blues in light, deep navy in dark). Scoped to
+   .hero-demo so the ASCII hero stays untouched. */
+.hero-demo {
+  --d-surface: #ffffff;
+  --d-band: #f4f1ea;
+  --d-page: #fafaf7;
+  --d-border: #e2ddd2;
+  --d-ink: #1c1c1c;
+  --d-body: #33312c;
+  --d-muted: #6b6760;
+  --d-accent: #0a5d9e;
+  --d-accent-bright: #2286c4;
+  --d-wash: #e8f0f7;
+  --d-warn-bg: #fbf0c9;
+  --d-warn-edge: #d9a400;
+  --d-warn-ink: #7a5d00;
+  --d-code-bg: #f1eee6;
+  --d-success: #2e9e57;
+  --d-shadow: rgba(28, 28, 28, 0.10);
+
+  display: grid;
+  /* Browser/animation column runs slightly wider than the terminal (~52/48). */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.08fr);
+  gap: clamp(16px, 2.4vw, 30px);
+  align-items: stretch;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+:root[data-theme="dark"] .hero-demo {
+  --d-surface: #0a1f3d;
+  --d-band: #071a3a;
+  --d-page: #03122f;
+  --d-border: #16315c;
+  --d-ink: #eaf2fb;
+  --d-body: #c9d6e6;
+  --d-muted: #8aa0bd;
+  --d-accent: #73bce4;
+  --d-accent-bright: #2286c4;
+  --d-wash: #0e2a4d;
+  --d-warn-bg: #2c2410;
+  --d-warn-edge: #b8902a;
+  --d-warn-ink: #ecd391;
+  --d-code-bg: #071a3a;
+  --d-success: #5fd08a;
+  --d-shadow: rgba(0, 0, 0, 0.5);
+}
+
+/* Each column: a small label above its panel. */
+.hd-col {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.hd-col-label {
+  margin: 0 0 0 2px;
+  font-family: "AsciiMono", monospace;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--overlay-text);
+  opacity: 0.7;
+  text-shadow: 0 0 5px var(--overlay-shadow);
+}
+
+.hd-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  margin: 0;
+  background: var(--d-surface);
+  border: 1px solid var(--d-border);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px var(--d-shadow), 0 28px 60px -30px var(--d-shadow);
+}
+
+.hd-chrome {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: none;
+  padding: 9px 13px;
+  border-bottom: 1px solid var(--d-border);
+  background: var(--d-band);
+}
+.hd-dots { display: inline-flex; gap: 6px; flex: none; }
+.hd-dots i { width: 11px; height: 11px; border-radius: 50%; background: var(--d-border); }
+.hd-chrome-label { font-family: "AsciiMono", monospace; font-size: 12px; color: var(--d-muted); }
+
+.hd-addr {
+  flex: 1;
+  min-width: 0;
+  font-family: "AsciiMono", monospace;
+  font-size: 12px;
+  color: var(--d-muted);
+  background: var(--d-surface);
+  border: 1px solid var(--d-border);
+  border-radius: 999px;
+  padding: 4px 12px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* Terminal (left panel) — fixed height so new lines scroll instead of growing
+   the panel. The demo loop keeps the latest line in view via scrollTop. */
+.hd-term {
+  height: clamp(320px, 42vh, 420px);
+  padding: 16px 18px 20px;
+  overflow-y: auto;
+  font-family: "AsciiMono", monospace;
+  font-size: clamp(12px, 1.15vw, 14px);
+  line-height: 1.7;
+  color: var(--d-ink);
+  white-space: pre-wrap;
+  word-break: break-word;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: var(--d-border) transparent;
+}
+/* Slim, rounded scrollbar that warms to the brand accent on hover. */
+.hd-term::-webkit-scrollbar { width: 8px; }
+.hd-term::-webkit-scrollbar-track { background: transparent; }
+.hd-term::-webkit-scrollbar-thumb {
+  background: var(--d-border);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  border-radius: 999px;
+}
+.hd-term::-webkit-scrollbar-thumb:hover { background: var(--d-accent); background-clip: padding-box; }
+.hd-line { white-space: pre-wrap; }
+.hd-prompt { color: var(--d-accent); user-select: none; }
+.hd-out { margin: 0 0 0.4em; font: inherit; color: var(--d-muted); white-space: pre-wrap; }
+.hd-cursor {
+  display: inline-block;
+  width: 0.6ch;
+  height: 1.05em;
+  margin-left: 1px;
+  vertical-align: text-bottom;
+  background: var(--d-accent-bright);
+  animation: hd-blink 1s steps(1) infinite;
+}
+@keyframes hd-blink { 50% { opacity: 0; } }
+
+/* Browser screen stack (right panel) */
+.hd-screen {
+  position: relative;
+  flex: 1;
+  min-height: clamp(320px, 42vh, 420px);
+  background: var(--d-page);
+  overflow: hidden;
+}
+.scr {
+  position: absolute;
+  inset: 0;
+  padding: 16px 18px;
+  overflow: hidden;
+  color: var(--d-body);
+  font-size: 13px;
+  line-height: 1.5;
+  opacity: 0;
+  transition: opacity 320ms ease;
+  pointer-events: none;
+}
+.scr.is-active { opacity: 1; }
+
+/* Screen content */
+.scr-h { margin: 0 0 12px; font-size: 16px; color: var(--d-ink); }
+.scr-title { margin: 4px 0 6px; font-size: 20px; color: var(--d-ink); }
+.scr-sub { margin: 14px 0 6px; font-size: 14px; color: var(--d-ink); }
+.scr-body { margin: 0 0 8px; }
+.scr-muted { color: var(--d-muted); }
+.crumb { margin: 0 0 10px; font-size: 12px; color: var(--d-accent); }
+.scr-meta {
+  margin: 0 0 12px;
+  font-size: 12px;
+  color: var(--d-muted);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.code {
+  font-family: "AsciiMono", monospace;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--d-muted);
+}
+
+.pill {
+  display: inline-block;
+  font-family: "AsciiMono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--d-wash);
+  color: var(--d-accent);
+}
+.pill--col { background: var(--d-band); color: var(--d-muted); }
+
+.doc-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-top: 1px solid var(--d-border);
+}
+.doc-title { color: var(--d-ink); }
+
+.callout {
+  margin: 8px 0 4px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--d-border);
+  border-radius: 4px;
+  background: var(--d-band);
+  color: var(--d-body);
+  font-size: 12px;
+  line-height: 1.45;
+}
+.callout--warn {
+  border-left-color: var(--d-warn-edge);
+  background: var(--d-warn-bg);
+  color: var(--d-warn-ink);
+}
+.callout-label { margin: 0 0 4px; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; }
+.callout p { margin: 0; }
+
+.scr-list { margin: 0; padding-left: 18px; }
+.scr-list li { margin: 2px 0; }
+.scr-list code,
+.scr-body code {
+  font-family: "AsciiMono", monospace;
+  font-size: 11px;
+  background: var(--d-code-bg);
+  padding: 0 4px;
+  border-radius: 3px;
+}
+
+.scr-code {
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: var(--d-code-bg);
+  font-family: "AsciiMono", monospace;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--d-body);
+  white-space: pre;
+  overflow: hidden;
+}
+.scr-code .k { color: var(--d-accent); }
+.scr-code .fn { color: var(--d-accent-bright); }
+
+/* Board */
+.board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.col-h {
+  margin: 0 0 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--d-muted);
+}
+.bcards { display: flex; flex-direction: column; gap: 8px; }
+.bcard {
+  padding: 8px 10px;
+  border: 1px solid var(--d-border);
+  border-left: 3px solid var(--d-accent);
+  border-radius: 6px;
+  background: var(--d-surface);
+}
+.bcode {
+  margin: 0 0 3px;
+  font-family: "AsciiMono", monospace;
+  font-size: 9px;
+  letter-spacing: 0.03em;
+  color: var(--d-muted);
+}
+.btitle { margin: 0; font-size: 12px; color: var(--d-ink); }
+.pill--doc {
+  display: inline-block;
+  font-family: "AsciiMono", monospace;
+  font-size: 9px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--d-wash);
+  color: var(--d-accent);
+}
+.bcard .pill--doc { margin-top: 6px; }
+.bcard--new { animation: hd-pop 360ms ease; }
+@keyframes hd-pop {
+  from { opacity: 0; transform: translateY(-6px) scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Responsive: stack columns, browser first */
+@media (max-width: 820px) {
+  .hero-demo { grid-template-columns: 1fr; }
+  .hd-col--browser { order: -1; }
+  .hd-term,
+  .hd-screen { min-height: 300px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scr { transition: none; }
+  .bcard--new { animation: none; }
+  .hd-cursor { animation: none; }
+}

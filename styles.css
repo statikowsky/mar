@@ -1,0 +1,327 @@
+@font-face {
+  font-family: "AsciiMono";
+  src: url("fonts/JetBrainsMono-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --bg: #020817;
+  --stage-bg: #020817;
+  --stage-shine: rgba(255, 255, 255, 0.04);
+  --stage-glow: rgba(90, 160, 170, 0.16);
+  --overlay-bg: #000;
+  --overlay-text: #dff7ff;
+  --overlay-shadow: rgba(210, 245, 255, 0.22);
+  --ascii-bg: #020817;
+  --ascii-0: #03122f;
+  --ascii-1: #06376e;
+  --ascii-2: #0a5d9e;
+  --ascii-3: #2286c4;
+  --ascii-4: #73bce4;
+  --ascii-5: #dff7ff;
+  --stage-inset: 80px;
+  /* Shared content frame: the title bar, copy, and demo all align to this. */
+  --hero-max: 1200px;
+  --hero-pad-x: clamp(16px, 5vw, 80px);
+  color-scheme: dark;
+}
+
+:root[data-theme="light"] {
+  --bg: #fdf6e3;
+  --stage-bg: #eee8d5;
+  --stage-shine: rgba(253, 246, 227, 0.72);
+  --stage-glow: rgba(42, 161, 152, 0.18);
+  --overlay-bg: #fdf6e3;
+  --overlay-text: #073642;
+  --overlay-shadow: rgba(38, 139, 210, 0.16);
+  --ascii-bg: #fdf6e3;
+  --ascii-0: #eee8d5;
+  --ascii-1: #93a1a1;
+  --ascii-2: #839496;
+  --ascii-3: #2aa198;
+  --ascii-4: #268bd2;
+  --ascii-5: #073642;
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  margin: 0;
+  background: var(--bg);
+}
+
+body {
+  font-family: "AsciiMono", monospace;
+}
+
+/* The ASCII landing now occupies the first screen of a scrollable page. */
+.hero {
+  position: relative;
+  width: 100%;
+  min-height: 100svh;
+  min-height: 100dvh;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.stage {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, var(--stage-shine), transparent 34%),
+    radial-gradient(circle at 50% 110%, var(--stage-glow), transparent 48%),
+    var(--stage-bg);
+}
+
+.ascii-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: var(--ascii-opacity);
+  --ascii-opacity: 0.16;
+  transition: opacity 420ms ease;
+}
+
+.loading {
+  position: absolute;
+  right: calc(var(--stage-inset) + 80px);
+  bottom: calc(var(--stage-inset) + 80px);
+  z-index: 2;
+  display: flex;
+  gap: 1ch;
+  align-items: center;
+  justify-content: center;
+  width: max-content;
+  padding: 0.55em 0.75em 0.65em;
+  color: var(--overlay-text);
+  background: var(--overlay-bg);
+  font-family: "AsciiMono", monospace;
+  font-size: 14px;
+  line-height: 1;
+  letter-spacing: 0;
+  text-shadow: 0 0 5px var(--overlay-shadow);
+  opacity: 1;
+  transition: opacity 240ms ease;
+  user-select: none;
+}
+
+.loading.is-fading {
+  opacity: 0;
+}
+
+.loading[hidden] {
+  display: none;
+}
+
+/* The content frame fills the hero so the demo can be vertically centered
+   while the title bar stays pinned to the top of the frame. */
+.hero-content {
+  position: relative;
+  z-index: 1;
+  min-height: 100svh;
+  min-height: 100dvh;
+  width: 100%;
+  max-width: var(--hero-max);
+  margin: 0 auto;
+  padding: clamp(20px, 4vh, 44px) var(--hero-pad-x);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Top bar: brand mark left, theme toggle right — aligned to the frame edges. */
+.hero-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+/* Copy + demo, flowing below the bar. */
+.hero-main {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(18px, 3.5vh, 36px);
+  padding-top: clamp(24px, 5vh, 56px);
+}
+
+.intro-copy {
+  margin: 0;
+  color: var(--overlay-text);
+  font-family: "AsciiMono", monospace;
+  font-size: clamp(14px, 1.5vw, 18px);
+  line-height: 1.9;
+  letter-spacing: 0;
+  text-shadow: 0 0 5px var(--overlay-shadow);
+  user-select: text;
+}
+
+.intro-copy-text {
+  padding: 0.4em;
+  background: var(--overlay-bg);
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+
+/* Headline row. */
+.intro-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: clamp(16px, 3vw, 36px);
+}
+
+.intro-row .intro-copy { min-width: 0; }
+
+/* Supporting copy below the demo. */
+.hero-note {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.6em;
+}
+
+.download-links {
+  display: flex;
+  flex-wrap: wrap;
+  margin-top: 18px;
+}
+
+.download-links .install-btn {
+  margin-right: 24px;
+  margin-bottom: 14px;
+}
+
+.download-links .install-btn:last-child {
+  margin-right: 0;
+}
+
+.install-btn {
+  flex: none;
+  font-family: "AsciiMono", monospace;
+  font-size: clamp(13px, 1.2vw, 16px);
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  white-space: nowrap;
+  color: var(--overlay-text);
+  background: var(--overlay-bg);
+  padding: 0.7em 1.3em;
+  border: 1px solid currentColor;
+  text-shadow: 0 0 5px var(--overlay-shadow);
+  transition: color 140ms ease, background 140ms ease;
+}
+
+.install-btn:hover {
+  color: var(--overlay-bg);
+  background: var(--overlay-text);
+  text-shadow: none;
+}
+
+.install-btn:focus-visible {
+  outline: 1px solid currentColor;
+  outline-offset: 4px;
+}
+
+.hero-note-line {
+  margin: 0;
+  color: var(--overlay-text);
+  font-family: "AsciiMono", monospace;
+  font-size: clamp(12px, 1.1vw, 15px);
+  line-height: 1.85;
+  letter-spacing: 0;
+  text-shadow: 0 0 5px var(--overlay-shadow);
+  user-select: text;
+}
+
+.title {
+  margin: 0;
+  padding: 0.4em;
+  background: var(--overlay-bg);
+  color: var(--overlay-text);
+  font-family: "AsciiMono", monospace;
+  font-size: 28px;
+  line-height: 1;
+  letter-spacing: 0;
+  text-shadow: 0 0 5px var(--overlay-shadow);
+  user-select: text;
+}
+
+.theme-toggle {
+  flex: none;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  color: var(--overlay-text);
+  background: var(--overlay-bg);
+  border: 0;
+  text-shadow: 0 0 5px var(--overlay-shadow);
+  cursor: pointer;
+}
+
+.theme-toggle svg {
+  display: block;
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+}
+
+.theme-toggle:focus-visible {
+  outline: 1px solid currentColor;
+  outline-offset: 4px;
+}
+
+@media (max-width: 640px) {
+  :root {
+    --stage-inset: 10px;
+  }
+
+  .loading {
+    right: 16px;
+    bottom: 24px;
+  }
+
+  .hero-content {
+    padding: 16px;
+  }
+
+  .hero-main {
+    padding: 24px 0;
+    gap: 22px;
+  }
+
+  .intro-copy {
+    font-size: 14px;
+    line-height: 1.8;
+  }
+
+  .intro-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .title {
+    font-size: 24px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ascii-canvas,
+  .title,
+  .loading {
+    transition: none;
+    animation: none;
+  }
+}

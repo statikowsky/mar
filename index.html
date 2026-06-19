@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>mar</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' fill='%23020817'/><text x='8' y='12' font-size='14' text-anchor='middle' fill='%23dff7ff'>%E2%89%88</text></svg>">
+  <script>
+    (() => {
+      const stored = localStorage.getItem("mar-theme");
+      const system = window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+      document.documentElement.dataset.theme = stored || system;
+    })();
+  </script>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="hero-demo.css">
+</head>
+<body>
+  <section class="hero">
+    <div class="loading" id="loading" aria-live="polite">
+      loading <span id="loading-spinner">⠋</span>
+    </div>
+
+    <div class="stage" aria-hidden="true">
+      <!-- Decorative: precomputed ASCII animation from shore1.mp4 -->
+      <canvas class="ascii-canvas" id="ascii"></canvas>
+    </div>
+
+    <div class="hero-content">
+      <header class="hero-bar">
+        <p class="title">mar</p>
+        <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Switch color theme"></button>
+      </header>
+
+      <div class="hero-main">
+      <div class="intro-row">
+        <p class="intro-copy"><span class="intro-copy-text">
+        Local-first docs and tasks for you and your agents
+      </span></p>
+      </div>
+
+      <div class="hero-demo" role="group" aria-label="MAR demo — drive it from the CLI, browse it in the browser">
+        <div class="hd-col">
+        <p class="hd-col-label">terminal</p>
+        <figure class="hd-panel hd-terminal">
+          <div class="hd-chrome hd-chrome--term">
+            <span class="hd-dots"><i></i><i></i><i></i></span>
+            <span class="hd-chrome-label">zsh — ~/acme-api</span>
+          </div>
+          <div class="hd-term" id="hd-term" aria-label="Terminal transcript of real mar commands"></div>
+        </figure>
+        </div>
+
+        <div class="hd-col hd-col--browser">
+        <p class="hd-col-label">browser</p>
+        <figure class="hd-panel hd-browser" aria-hidden="true">
+          <div class="hd-chrome hd-chrome--web">
+            <span class="hd-dots"><i></i><i></i><i></i></span>
+            <span class="hd-addr" id="hd-addr">127.0.0.1:7777/docs</span>
+          </div>
+          <div class="hd-screen" id="hd-screen">
+            <div class="scr" data-screen="empty">
+              <h3 class="scr-h">Docs</h3>
+              <p class="scr-body scr-muted">No documents yet — create one from the CLI.</p>
+            </div>
+
+            <div class="scr" data-screen="docs">
+              <h3 class="scr-h">Docs</h3>
+              <div class="doc-row">
+                <span class="code">DOC-AUTH</span>
+                <span class="pill pill--type">design</span>
+                <span class="doc-title">Auth design</span>
+              </div>
+            </div>
+
+            <div class="scr" data-screen="doc">
+              <p class="crumb">← back to docs</p>
+              <h3 class="scr-title">Auth design</h3>
+              <p class="scr-meta"><span class="code">DOC-AUTH</span> <span class="pill pill--type">design</span> · updated 2026-06-13</p>
+              <p class="scr-body">Short-lived access tokens with rotating refresh tokens, stored per-device.</p>
+              <div class="callout callout--warn">
+                <p class="callout-label">WARNING</p>
+                <p>Refresh tokens are single-use. Reusing a rotated token revokes the whole device session.</p>
+              </div>
+              <h4 class="scr-sub">Flow</h4>
+              <ol class="scr-list">
+                <li><code>POST /session</code> exchanges credentials for an access + refresh pair.</li>
+                <li>The access token is a 15-minute JWT; the refresh token is opaque.</li>
+                <li>Each refresh rotates both and invalidates the prior refresh token.</li>
+              </ol>
+              <pre class="scr-code"><span class="k">func</span> <span class="fn">Rotate</span>(ctx, prior) (Pair, error) {
+  <span class="k">if</span> prior.Used { <span class="k">return</span> Pair{}, ErrReuse }
+}</pre>
+            </div>
+
+            <div class="scr" data-screen="board">
+              <div class="board">
+                <div class="col">
+                  <p class="col-h">To do</p>
+                  <div class="bcards" data-col="todo"></div>
+                </div>
+                <div class="col">
+                  <p class="col-h">In progress</p>
+                  <div class="bcards"></div>
+                </div>
+                <div class="col">
+                  <p class="col-h">Done</p>
+                  <div class="bcards"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="scr" data-screen="task">
+              <p class="crumb">← back to board</p>
+              <h3 class="scr-title">Wire up auth</h3>
+              <p class="scr-meta"><span class="code">T-WIRE-UP-AUTH</span> <span class="pill pill--col">To do</span></p>
+              <p class="scr-body">Created just now from the CLI.</p>
+              <h4 class="scr-sub">Linked docs</h4>
+              <p class="scr-body scr-muted">No linked docs yet.</p>
+            </div>
+          </div>
+        </figure>
+        </div>
+      </div>
+
+      <div class="hero-note">
+        <p class="hero-note-line"><span class="intro-copy-text">
+          A per-directory repository of Markdown docs plus a kanban board.<br>
+          Edit in your browser or through CLI - changes will sync instantly.<br> 
+          Plain Markdown and YAML on disk.<br> 
+          Single binary, no telemetry, no cloud, no accounts, no bs.<br></span></p>
+        <nav class="download-links" aria-label="Download mar">
+          <a class="install-btn" href="https://github.com/statikowsky/mar/releases/latest/download/mar_darwin_arm64.tar.gz" rel="noopener">macOS · Apple Silicon</a>
+          <a class="install-btn" href="https://github.com/statikowsky/mar/releases/latest/download/mar_darwin_amd64.tar.gz" rel="noopener">macOS · Intel</a>
+          <a class="install-btn" href="https://github.com/statikowsky/mar/releases/latest/download/mar_linux_amd64.tar.gz" rel="noopener">Linux · x86-64</a>
+          <a class="install-btn" href="https://github.com/statikowsky/mar/releases/latest/download/mar_linux_arm64.tar.gz" rel="noopener">Linux · ARM64</a>
+          <a class="install-btn" href="https://github.com/statikowsky/mar/releases/latest/download/mar_windows_amd64.zip" rel="noopener">Windows · x86-64</a>
+        </nav>
+      </div>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    window.ASCII_FIRST_FRAME = {
+      cols: 180,
+      rows: 80,
+      ramp: " .,:;!~+=?*}#%&@",
+      frame: "77777777766666777778888787788888888989999988888888877888888888888888888888888888888999889988888888888888888888878888887766666667777777777777888888888888888888887777777777677766666677777777777777778888888888777888888888888888888888888888888888889999988888888888888888888887777788888888888777888888776677777777788888888888888888888888888888888877777777777777777788888888888778888888888888788888888888888888888888888888888888888888899999998998888888888888888888888777777788887777677777788888888888888888877777777788888778887777777777777777776688888888778888888888888888888888888888888888888888888888888888888888888999999998888888888888888888888888888888777777888888888888888889888878888888888888888877777777777777777777777788888888888888888888888888888877788877888777777888888888887777777888888878899999999999998888888888888888888888888888888887788888888888777778888888888888888888777777777777777777777788888888888888888888888887888888888888888888888888777777887777777777888887888888999999998888888888888888888888888888888877777777777777777788888888888877777788888878777777777777777788888888888888888888888888888988899998888889988888888888888888888877777778888888899999999999999999998888888888888999887788888887777777777778888888888777776677788877778888888877777788888888888888888888888888888998888999999888888888888888999999888888878888889999999999999999999999999999888888899888888888888888888888777788888888877777777777788888777777788888777788888888888888888888887766677777777788888888888888899988888888999998888999999999999998888888889999999988888889988889999888888888888888888888888887878888888777777778778888888888777788888878888888888888887777777777778888888888888888888888888888888999999988888888888888888888888888888999999999889999888888888888888888888888888888888888877777777788888888888888877788888888888888888888888888888888888888888888888888888888888888888899999888888888888888888888888999999999998988999998888888888888888888888888888888777777776666677777777777888888888888888888888888888887788888888887788888888888888888887788889888888899999988888888777777777888888999999988999998888888888888888888888888888888888888888888787777777777888887788788887788888888888888888888888888888888888888888888888888888889999999999999888998999999988888888899999999888889999988777777888888888888888888888888888888888888888888888888888777777777888877788887778888888888887777778888888888888888888888888888899999999999999999999999999999999999999888899998887777888888887778877778888888888888888888888888888888888888877777777777887777777777777777788888888888888888888888898889999999888989999999889999999999999999999999999999999999888877777777888888888888888888888888888888888888888888888888888888887777776677776677777778888888888888889888889999999999999999999998888888999999999999999999999999999999998888888888888888778887777788888888888888888888888887777877778888888888888877777777776677777777778888877888888888888888899999999999999999999998888888889998888888999999999999999999999899999998888888888777777888888888888888887777778888888777777788888888888887778888888877777788888899988888888778888888899888899989a99999999999999999999988888889999999999999999988888888888888877777887788888777777777778877777777777788888888888778888888888888888887777677777799899888889999899888888888999999999988999aaa999999999999998888999989999999999998888888888899988878888888888888888887777777777777787777777777888888888888888888888888877777777777777789988888889999999999999999999998889999999aaa9988999999999999999999999999888999999988888888888888888888888888888888888888888887777887777777788888887777777788888888888777777777777777788878888888889999999999999999999999999999999999999999999999999999999998888888888878898888888888888888888888888888899999988888888888888888888888888888888888888888888888888888888877888777788888888999999999999999999999999999999999999999999999999987799999999888887777778888888888887788888888888888889888888888888888888888888888888888899888888888888888888888888888998888888888888888888898889999998899999999aaa999999999999999988887777899999999998888877777888888888888888888888888888888888899998889899888888888888888888888888888888888888888888888999988988888999999999999999999999999999aaaa999999aa9999999999888888888888888888888888888877788888888888888888888888888998999999999899998998998888888887778888888888888888888888888888888999999999999999999999999999999999999a9999999aaa999999999999999999999888888888888888888888888888888888888888898888899999999999999999999888888888888888888888888888888888888888888888899999999999999999988999999999999999999999999999999aaaaaa99999999999999998889899988888888888888888888888998888899988999999988999999999888888988888888888888888888888888888888888888999999999999999999999999999aaaaaaaa9999999999999aaaa9999999999999999999999999999999998888888999999888888888888899999988888888899999999999999888888888888888888888888888888888888879999999999999999999999999999999999999999aa999aaaaaaaa99999999999999999999999999999999999999999888889999988888889999999998898889999999999999899988899999999888888888888888888888888779999999999999999999999999999999999999999999999aaaaaaaa999aaaaa999aaaaa99999aaa99999999999999999999999999999988999999999999988899999999999999999999999999899988888888888888888888888899999999999999999999999999999aaaaaa9aaaaaaaaaaaaaa999999aa999aaa999aa9999999aa99999999999999999999999999999999988999999999988899989999999999999999999999999999988888888888888888888899999999998889999899999999999999999999aaaaaaaaaaaaaaaaaaaaaaaa9999999a9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999888888888888888888888899999999999999999a999999999999999999999999aaaaaaaaaaaaa9aaaaaaaaaaaa99aaaaa9999999999999999999999999999999999999999999999999999999999999999999999999988899999998888888888888888888888888999999999999999999999999999999999999aaaaaaaaaaaaaaa99aaaaaaaaaaa99a99aa99999999999aa9999999999999999999999999999999999999999999999999999999898888999999999998899899888888888888888888888899999999999999999999999999aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa999999999999999999999999999999999999999999999999999999999999999999998999888888888888888899999999999999a99999aaaaaaaaaaaaaaaaaaaaaaaaaaaaa999a99999aaaaaaa9aaaaaaaaaaaaaaaaaaaaaa999aaaaaa9999a9999999999999aaaaaaa9999999999999999999999999999999999999888888888888888888888999999999999999999999aaaaaaaaaaaaaa9999aaa99999999aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa999aa99999999aaaaaaaaaaaaaaaabbbaaa999999999999999999999999999999999988888888888888888888888888889999999aa9999999aaaaaaaaaaaa999aaaa99999aaaaaaaaaaaaaaaaaaaaaaaaa9aaaaaaaaaaa9aaa9999999999999999999aaaaaaaaaaaaabbaaaaaaaaaaaa9999999aaaaaaaa9999999998899999999999999999888888888889999999999aaaaa9aaaaaa9aaaaaaaaaaaaaaaaaaaaaaaaaaaaa99aaaaaa99aaaaaaa99999999999999999999999aaaaaaaabbabbaaaabaaaaabbbbbbaaaaaa9999aaaaaa9aa99999999999999a99999999999889998888998888899989888899999999aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa9999aaaaaaaaaaaaaaaaaaaaabbaaaaaaaaaaaaaaaaaaaabbbabbbbbbbbbbbbbbaa9aaaa9aa99999999999999aaaa999999999999889999999988888777888999aaa9999aaaaaaaa9aaaaaaaaaa99aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabaabaaaaaaaa9abbbbbbbbbbaabbbbccccbaaaabbbbbbbaaaaaabbbaa99aaa9aa99999999999a9999999999999999999998888889999aaaa9aaaaaaaabaaaabbbaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbaaaaaaaabbbbaabbbbbaabbbaaaaabcbbbabbbbbbaaaaaaaaaaaaa99aaaaaaa9aaaaaaaaaaaaaa999999889aa9999999999aaaaaaaaaaaaaaaaa9999aaaabbbbaaaaaaabbaaaaaaaaaaaaabbbbbbbbaabbbaaaabbbaabbbbbaaaaaaabbbbbbbbaa999aaaaaaaaa988aaaabaabbbbbaa9abbbbaaaaaaaaa999a9999aaa9999999aaaaaa9999999999aaaaaaaaaaaaaaaaaaaaaaaaa9999aaaaaaaaaaaaaaabbbbbbaaaabbbbabbbbbbbbbbbaaaaaaaaaabbbbbbbbbbbbbbbbaaaa99aaaabaaaa98889899abcccbabbbbbaaaabbbbbbbbbbbbbaaaaaaaa999999999aaaa9999a99999999aaaaaaaaaaaaaaaa9999aaaaaaaaaa999aaaaaaaaaaaaabbbaaaaaabaaaaaabbbbbaaaaaaaaaaaaabbbbbbaaaaaaaaa9aaabbbbbaaaaa989998889bccccccccbbbbcbbccbbbbbbbbbbbbbbbbbbaaaaaaaa9999999aa999999999aaaaaaaaaaaaa9999a99aaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbaaaaaaaaaababbbbbaaaaaaaaaaaaaaaaaaabbbbbaaaaabbaaa9a999999bbbbbbbbcbbbbbccccccbbbbbaaabbba9aaa999999aaaaa9999999999aaaa99999aaaaaaa999aaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbaababbabbbbbbbbbaaaaaaabaaabbaaaabbbaaaaabbbbbaaabbbbbbbbbaaaabbbbbbbbcccccbbcccccccccbbbbbbbbbbaaaa99999aabbbaa9999999999999aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbaabaaaaaaabbbbbaaaaaaaaaaaaaaaabbaaabbbaaaaaaabbaaaabbbbbaaabbbbbbbbbbbbbbbbbbbcccbbbbbbbccbbccbbbbabbbbbbbbbbbaaaaaaaaa99999999aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbaaaabbbbbbbbbbbaaaaabaaaaaaaaaaaaaaaaaaaaaabbabbaaaaaaaaaabbbbbbccbbbbccccbabbbaaaaaabbbbbbbbbbaaaaaaaaaaaaaaaaaabbbbbccccbbbb99aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbaaaaabbbbbbbbbaaaaaaaaabbaaaaaaaabbbbaaaaaaaabbbbbbbccbbbbbbcbbbbbbbbaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa999aaaaaaabbbbaaaaaaaaaaaaaaa9aaaaaaaaaaaaaaaaaaaaaaaaaaabbabbbbbbbbbbbbbbbbbaaaaaaaaabaaaabbbaaaaaaaaaabbbbbabbbbbbbaaaaaaabbabaaaaabbbbbbbbbbbbbbbbbbbaaaaaaaaaaaaaaaaaaaa99999999aaa9aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbaaaaaaaaaaaaaaaaaaababaaaaabbbbaaaaaaaaaabbabbaabbaaaaaaaaaabcbbbbbbbbbbbbbbbbbbbbbbaaaaabbaaaaaaaaaaaaaa9999aaa9999aa9889999aaaaaaa99aaaa999999aaaaaaaaaaaaaaaaaaaaaabbbbbbaaaaabbbbbaaaaabbaaaaabbaaaaaaaaaaaabbbbaaaaaaaabbbaaaaaaaaaaaaaaaabcccaaaaaabbbbbbbbbbbbbbaaaaaabbbbbbbaaaaaaaa9a99a9999abbaa8889999998898888888888899999aaaaaaaaa999999a99aaaaabbaaaaaaaaaaabbbbabbaaaaaaaaaabbaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabcaaaaaaaaaaabbbbbaaaaaaaabbbbbbbbbaaaaaaaaaa9997778898888888999988888989999999989999999abbaaaaabbbbcccccbbb99999bbccb8889aaaaaaaaaaaaabbbbaaabaaaaa9aaaaaaaaaaaaaaaaaabaaaaaa99998899899aaaaaaa9aabbbb9999999999aaaaaaaaaaaaaba8777888777777888888877678898888aa9aba9999aabbcaaabbcccccbbbbbcccbbbabcccbbbaaa99999aaaaaaab9999a99ababaaa9999aa9aa9999899aaaaaa9988888878888998999898899999899999999999999a99999999888888878778887787778998788777679acddddcba99bbbbbbbaabbbcbbbbbbbbcbbbcccccbcccaaa9988899899998899999aa999888899aaaaaa999999999a99998888889889989a98999988999999999a99a999998888888888888888878888888879bccccbbb899abccccccccccbbbbbbbbabcbbcbbccbbcccccbbbbbcccccccaa9999a999988999a99a99999aabccdddddddca89999999aaaaaaaa9aa98999aaa9999999988889998888899999999888778888888778888899888accccbbbccccccccbbccccbcccccccccccdddddccbbbbcccccddcbbcccccdddcbbccbbaa9aaaaaaaa99aa9addddddddddddddcaaaba98889aaabbbcbaabbaabaaa99a99999999aa9999888899999898988888989aaaaa9aaa99abbbbbbbccccbbbaaabccccbbbcccccccdccccddddcccddddccdcccccddddddddddcccbbaaa9899aa999abbcdccddddddddddddcddccbaabbbbcccbbbbbbbbbaaaaaaa9999999999a999a9999999999a99aabccccccccccccccbbbbbbbcbbbbbbaaaaabccccbbcccccccdccccccccddddccccddddccccccccdddddddcccccccbbbccccccccccccccddddddddddddddddddddccccdccccccccbcbba9abbaba99898888999aa99aaaaaa99abbcccccccccccccccccbbbbbccccbbbbbbaabbbbbccbbccbccccccccccddddddccccccdddddddccccdddddddccccdcccdccccccccccbbbccccccdddcccccccdcccccdddcdddddccccccccbaabbcccbbaaaaaabbbaabbba9abbbbccccccccccccccccccbbccccccccccbba9999aabbbccccccccccccddddddddcccccccccdddddddccccccccccddccbbbbbbbbbaabccccccccccbcccccccbbccbcccccccccccccbccccccdccdddddccdddddccccbbaaabbbbbbcbbbbbccccccccccbbbbbbbbccccbbbccaaaaaaaaabcccccccccccccddddcdddcddcdddddccccccccccccccccccccdcccccbccccbccccddcccccccbbcbbbbbbbbccbbccccccccccbbbbbcccdcccdddccbcccccddddccccbbbaaa999aabbbbbcccccccbbbbbbbaabaabbcc9aabbbbbbccccccccccccccccccccccccddddcddddcccccccccddddddddddddcccddccccccccbbbbaaabbaaaa9aaaabcccbbccccccccccccbbccccccccccccccccbcccccbcbaa99899a8999aaabbccccbbbbccbbba99aa999999bbbbbbbbbbbbbbbbcccccccccccccccccccccccccccccccccccccccccdddccddddddccbbbccbbabbbbbbcccccbbbbbcddcccbabcccbbbbbcccccdddddddcccccccccccccbbabbba9a99998aabcccbbbbaaaabbbbbabccccb9998aaaaaaaaabbbba99abbbbbccbbccccccccbccbbbbbccddccccccdddccddddddddcccdddcccbbbbbbcccddddddddcccddddccbbcccccccbbcccddccccccccdddcccccccccccccbcccbbaa9accccbbaaa9989aabcccccbbbba98889aabbbbabbabbbaabcccccccbbbbbbbccddccbbbbbcccccccccdddddddddddddcccddddddddddcccdddddddddddddddddccccddcccccdddccccbbbbbbcccccccccccccccccccccccccccccbbbbb9997889aacccbbbbbbbb87776bbbaa98889bbcccccccccccccbaabccccccddddcccbbccccccddddddddddddccdddcccccccdddddddddddddddddddddddddddddddccccccccbbbbbbbccdcccccccccccccccccccccccccccbaaaaabba9aaabbbbbbbcccbbbaaaacccbbaa99abbbbaaaabbabbbbcccdcccccccccddddcbcccccddcccccdddcccccccccccccccccccccdddddddddddddddddddddddddddcbbbccccccccccccccccccbaaaaabbcbccccbbbbbbbbbbbbbcbbbcbaaabbabbaaaaaabbbabbbbbbbbbbaaa98899aabcccccdcccccccdddddddddddddddddcccccccccccccbbcbbbbbbbbbbbcccccddddddddddddddddddcccdddddddccccccccccccccccaaa99999889abbbbbbbbbbbbbbbbbbbcccccccbbaaaaa9aaaabbbbbbbbbbbbbbbbbccccccccccccccccccddddddddddddcccccccccddccbbbbbbabbbbaaaaa99aaabcbbcccdddddccccccccccccccccccccccbbccccccccccdddcbaabcccbaaaaabababaa9aabbbbbbbbbbbbcccccccccccbbbbbbabbbbbbcccccccccccccccdccccccccddddddddddddddddccccccccccbbbbbcaa9aa999889aabbcccccbbcccccccccccbcccbbbbbbccccbbaabbbabbbccccccccbbbcccbbcbba999999999aaaaabbbbbbbbbbbbbbbbbbbbccccbccccccccccccccccccccccccdddddddddddddddddddddddddddddcccbcccccccbabbbaaaabcccdddddddcbbbbbbbbbbbbbbba99aabbcccbbbbaabbbbabccccbcccccccccbba988889988889999abbbbbaaaaabaabbbbbbbbbbbbcccccccccccccccccccccccccccccdddddccccccdccdddddddddddddddddddddddccccccccccdccccddddcba999aaaaa9999aabccccccccccccccccccccccccccbccccbbbba998888877789aaa9aabbba9abbaaaaabbbccccbbbbbbbbbbbbbbbbbbbbbbbbbbbbccccccccccccbbbbbbbcccccccccccccbbbbbbcccccddddcccdcccccccccccb7666766666689abbbbbbbbbbccbcbbcccccbbbbbbbbbbaa99888888656678889abba987789aaa9889aaaaabbbbbaaabbaaaaaaaaaa9aa999999aaaaaaabbbbaaa99aaaaaaabbbbbbbbccccccccccccccbbbbbbbbbbbbaaaaaaaa888888998899aaa99888999888889999888888888788876665556775445566788888765567777667877887788887aa998777778877777888888999999aaaaabbbabbbccccccccccccbbbbbbbbbaabbbaaaaaaabbbbbbbbbbbbaabbbbbbbbbbbbaaaaaaaaaaaa9999999a999999999999998888888777777777788888999888888899988877877788aaaaaaa99abbbbbbbbbbbbbbbbbbbbbbbbaaaabbabbbbaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbabbbba9aaaaaaaaaaaaaaaaaaabaaaaaaaaaaaaaaaabaaaaaaaaaaaaa99988889888888999999a999989999999a99988988baaaaabaaa9999999999aa9aabbaaaaaaa999aaaaaaaaaaaaaaabaabbaaaaaaaaaaaaaaaa9aaaabbaaaabaaaabbaa9aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa9999999999998878999999889999998899999999999779988899988889889999889999999aaaaaaaaaaaabbbbbaabbbbaaaaabbaaaaaaaaaaaaaaaaaaaaaaaa9abbbbbaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa99a99999999999986566688988977899999888999899898888",
+    };
+
+    window.loadingSpinnerTimer = (() => {
+      const spinner = document.getElementById("loading-spinner");
+      const frames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
+      let index = 0;
+
+      return window.setInterval(() => {
+        index += 1;
+        spinner.textContent = frames[index % frames.length];
+      }, 45);
+    })();
+  </script>
+  <script src="ascii-player.js"></script>
+  <script src="hero-demo.js"></script>
+</body>
+</html>
