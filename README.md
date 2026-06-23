@@ -16,6 +16,9 @@ it, and put `mar` (or `mar.exe`) on your `PATH`. Verify against
 
     go install github.com/statikowsky/mar@latest
 
+On macOS the binary is unsigned, so Gatekeeper blocks the first launch. Clear
+the quarantine flag once: `xattr -d com.apple.quarantine mar`.
+
 ## Quick start
 
     mar init      # create ./.mar/ (board.yml, tasks/, docs/)
