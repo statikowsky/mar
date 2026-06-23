@@ -3,7 +3,8 @@ columns:
       tasks:
         - T-MAKE-STORE-MUTATIONS-TRANSACTIONAL
     - name: In progress
-      tasks: []
+      tasks:
+        - T-UPDATE-README-AND-GH
     - name: Done
       tasks:
         - T-ACCESSIBILITY-OPTIONS-IN-WEB

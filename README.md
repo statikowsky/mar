@@ -1,6 +1,6 @@
 # mar
 
-Local-first docs and tasks for you and your agents.
+mar is a local-first project memory: Markdown docs + kanban tasks per directory, usable from the browser, CLI, or coding agents.
 
 A per-directory repository of Markdown docs plus a kanban board. Browse it in
 your browser or drive it from the CLI; changes sync both ways. Data is plain
