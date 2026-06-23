@@ -9,15 +9,20 @@ accounts. Agent friendly as every command speaks `--json`.
 
 ## Install
 
-Download the archive for your OS from the
-[latest release](https://github.com/statikowsky/mar/releases/latest), extract
-it, and put `mar` (or `mar.exe`) on your `PATH`. Verify against
-`checksums.txt`. Or, with a Go toolchain:
+Homebrew (macOS and Linux):
+
+    brew install statikowsky/tap/mar
+
+Or with a Go toolchain:
 
     go install github.com/statikowsky/mar@latest
 
-On macOS the binary is unsigned, so Gatekeeper blocks the first launch. Clear
-the quarantine flag once: `xattr -d com.apple.quarantine mar`.
+Or download the archive for your OS from the
+[latest release](https://github.com/statikowsky/mar/releases/latest), extract
+it, and put `mar` (or `mar.exe`) on your `PATH`. Verify against
+`checksums.txt`. On macOS the downloaded binary is unsigned, so Gatekeeper
+blocks the first launch; clear the quarantine flag once with
+`xattr -d com.apple.quarantine mar` (Homebrew installs are unaffected).
 
 ## Quick start
 
