@@ -326,6 +326,37 @@ body {
   outline-offset: 3px;
 }
 
+.repo-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7ch;
+  margin-top: 18px;
+  padding: 0.5em 0.9em;
+  font-family: "AsciiMono", monospace;
+  font-size: clamp(12px, 1.1vw, 14px);
+  letter-spacing: 0.02em;
+  text-decoration: none;
+  color: var(--overlay-text);
+  background: var(--overlay-bg);
+  text-shadow: 0 0 5px var(--overlay-shadow);
+  transition: color 140ms ease, background 140ms ease;
+}
+
+.repo-link svg {
+  flex: none;
+}
+
+.repo-link:hover {
+  color: var(--overlay-bg);
+  background: var(--overlay-text);
+  text-shadow: none;
+}
+
+.repo-link:focus-visible {
+  outline: 1px solid currentColor;
+  outline-offset: 3px;
+}
+
 .hero-note-line {
   margin: 0;
   color: var(--overlay-text);
