@@ -129,14 +129,27 @@
           Edit in your browser or through CLI - changes will sync instantly.<br> 
           Plain Markdown and YAML on disk.<br> 
           Single binary, no telemetry, no cloud, no accounts, no bs.<br></span></p>
-        <p class="brew-install">Homebrew — <code>brew install statikowsky/tap/mar</code></p>
-        <nav class="download-links" aria-label="Download mar">
-          <a class="install-btn" href="https://github.com/statikowsky/mar/releases/latest/download/mar_darwin_arm64.tar.gz" rel="noopener">macOS · Apple Silicon</a>
-          <a class="install-btn" href="https://github.com/statikowsky/mar/releases/latest/download/mar_darwin_amd64.tar.gz" rel="noopener">macOS · Intel</a>
-          <a class="install-btn" href="https://github.com/statikowsky/mar/releases/latest/download/mar_linux_amd64.tar.gz" rel="noopener">Linux · x86-64</a>
-          <a class="install-btn" href="https://github.com/statikowsky/mar/releases/latest/download/mar_linux_arm64.tar.gz" rel="noopener">Linux · ARM64</a>
-          <a class="install-btn" href="https://github.com/statikowsky/mar/releases/latest/download/mar_windows_amd64.zip" rel="noopener">Windows · x86-64</a>
-        </nav>
+        <div class="install">
+          <p class="install-eyebrow">install</p>
+
+          <p class="cmd cmd--primary">
+            <span class="prompt" aria-hidden="true">$</span><code>brew install statikowsky/tap/mar</code><button class="copy" type="button" data-copy="brew install statikowsky/tap/mar" aria-label="Copy command">copy</button>
+          </p>
+
+          <p class="cmd-note"># or with a Go toolchain</p>
+          <p class="cmd">
+            <span class="prompt" aria-hidden="true">$</span><code>go install github.com/statikowsky/mar@latest</code><button class="copy" type="button" data-copy="go install github.com/statikowsky/mar@latest" aria-label="Copy command">copy</button>
+          </p>
+
+          <p class="cmd-note"># or grab a prebuilt binary</p>
+          <nav class="dl-grid" aria-label="Download mar">
+            <a class="dl" href="https://github.com/statikowsky/mar/releases/latest/download/mar_darwin_arm64.tar.gz" rel="noopener">macOS <span class="dl-arch">arm64</span></a>
+            <a class="dl" href="https://github.com/statikowsky/mar/releases/latest/download/mar_darwin_amd64.tar.gz" rel="noopener">macOS <span class="dl-arch">x86-64</span></a>
+            <a class="dl" href="https://github.com/statikowsky/mar/releases/latest/download/mar_linux_amd64.tar.gz" rel="noopener">Linux <span class="dl-arch">x86-64</span></a>
+            <a class="dl" href="https://github.com/statikowsky/mar/releases/latest/download/mar_linux_arm64.tar.gz" rel="noopener">Linux <span class="dl-arch">arm64</span></a>
+            <a class="dl" href="https://github.com/statikowsky/mar/releases/latest/download/mar_windows_amd64.zip" rel="noopener">Windows <span class="dl-arch">x86-64</span></a>
+          </nav>
+        </div>
       </div>
       </div>
     </div>
@@ -160,6 +173,21 @@
         spinner.textContent = frames[index % frames.length];
       }, 45);
     })();
+  </script>
+  <script>
+    // Copy an install command to the clipboard, with brief inline feedback.
+    document.addEventListener("click", (event) => {
+      const button = event.target.closest(".copy");
+      if (!button || !navigator.clipboard) return;
+      navigator.clipboard.writeText(button.dataset.copy).then(() => {
+        button.textContent = "copied";
+        button.classList.add("is-copied");
+        window.setTimeout(() => {
+          button.textContent = "copy";
+          button.classList.remove("is-copied");
+        }, 1400);
+      });
+    });
   </script>
   <script src="ascii-player.js"></script>
   <script src="hero-demo.js"></script>
