@@ -242,6 +242,20 @@ body {
   user-select: text;
 }
 
+.brew-install {
+  margin: 14px 0 0;
+  color: var(--overlay-text);
+  font-family: "AsciiMono", monospace;
+  font-size: clamp(12px, 1.1vw, 15px);
+  text-shadow: 0 0 5px var(--overlay-shadow);
+  user-select: text;
+}
+
+.brew-install code {
+  background: var(--overlay-bg);
+  padding: 0.15em 0.5em;
+}
+
 .title {
   margin: 0;
   padding: 0.4em;
