@@ -31,3 +31,30 @@ jobs:
         with:
           files: dist/*
           generate_release_notes: true
+
+      - name: Checkout Homebrew tap
+        uses: actions/checkout@v4
+        with:
+          repository: statikowsky/homebrew-tap
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          path: homebrew-tap
+
+      - name: Update Homebrew formula
+        run: |
+          go run ./tools/update-homebrew-formula \
+            --tag "${{ github.ref_name }}" \
+            --checksums dist/checksums.txt \
+            --formula homebrew-tap/Formula/mar.rb
+
+      - name: Push Homebrew formula update
+        run: |
+          cd homebrew-tap
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Formula/mar.rb
+          if git diff --cached --quiet; then
+            echo "Homebrew formula already up to date"
+            exit 0
+          fi
+          git commit -m "mar ${{ github.ref_name }}"
+          git push

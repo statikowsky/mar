@@ -6,6 +6,7 @@ columns:
       tasks: []
     - name: Done
       tasks:
+        - T-AUTOMATE-HOMEBREW-TAP-UPDATES
         - T-MAKE-DOC-AND-TASK
         - T-UPDATE-README-AND-GH
         - T-ACCESSIBILITY-OPTIONS-IN-WEB
