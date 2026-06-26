@@ -361,6 +361,22 @@ a { color: var(--accent); }
 .subtitle { color: var(--muted); margin-bottom: 24px; }
 .small { font-size: 13px; color: var(--muted); }
 .meta { font-size: 13px; color: var(--muted); }
+.code-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  max-width: 100%;
+  padding: 1px 7px;
+  font: 12px/1.4 "SF Mono", Menlo, Consolas, monospace;
+  color: var(--fg);
+  background: var(--code-bg);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  cursor: copy;
+  vertical-align: baseline;
+}
+.code-chip:hover { background: var(--btn-bg-hover); border-color: var(--accent); }
+.code-chip[data-copied="true"] { color: var(--good); border-color: var(--good); background: var(--good-soft); }
 
 /* ===== Inline code ===== */
 code {

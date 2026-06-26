@@ -1,7 +1,7 @@
 {{define "content"}}
 <p class="subtitle"><a href="/board">&larr; back to board</a></p>
 <h1>{{.Task.Title}}</h1>
-<p class="meta">{{.Task.Code}} · {{.ColumnName}}{{if eq .Task.Status "archived"}} · <span class="archived-tag">archived</span>{{end}}</p>
+<p class="meta"><button type="button" class="code-chip" data-copy-code="{{.Task.Code}}" aria-label="Copy {{.Task.Code}}" title="Copy {{.Task.Code}}">{{.Task.Code}}</button> · {{.ColumnName}}{{if eq .Task.Status "archived"}} · <span class="archived-tag">archived</span>{{end}}</p>
 <p class="doc-actions">
   {{if eq .Task.Status "archived"}}
   <button class="taskact" data-code="{{.Task.Code}}" data-action="unarchive">Unarchive</button>

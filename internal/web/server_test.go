@@ -415,6 +415,21 @@ func TestDocPageRenders(t *testing.T) {
 	}
 }
 
+func TestDocPageShowsCopyableCodeChip(t *testing.T) {
+	srv, s := newTestServer(t)
+	s.CreateDoc("auth", "Auth", "design", "")
+	code, body := get(t, srv.URL+"/doc/DOC-AUTH")
+	if code != 200 {
+		t.Fatalf("status = %d", code)
+	}
+	if !strings.Contains(body, `<button type="button" class="code-chip" data-copy-code="DOC-AUTH"`) {
+		t.Errorf("doc page missing copyable code chip:\n%s", body)
+	}
+	if !strings.Contains(body, `navigator.clipboard.writeText`) {
+		t.Errorf("doc page missing clipboard handler:\n%s", body)
+	}
+}
+
 func TestDocPageNotFound(t *testing.T) {
 	srv, _ := newTestServer(t)
 	code, _ := get(t, srv.URL+"/doc/DOC-NOPE")
@@ -460,6 +475,29 @@ func TestTaskPageRenders(t *testing.T) {
 	}
 	if !strings.Contains(body, "Wire auth") || !strings.Contains(body, "<strong>notes</strong>") {
 		t.Errorf("task page not rendered: %s", body)
+	}
+}
+
+func TestTaskPageShowsCopyableCodeChip(t *testing.T) {
+	srv, s := newTestServer(t)
+	s.CreateTaskWithCode("1", "Wire auth", "", "")
+	code, body := get(t, srv.URL+"/task/T-1")
+	if code != 200 {
+		t.Fatalf("status = %d", code)
+	}
+	if !strings.Contains(body, `<button type="button" class="code-chip" data-copy-code="T-1"`) {
+		t.Errorf("task page missing copyable code chip:\n%s", body)
+	}
+	if !strings.Contains(body, `navigator.clipboard.writeText`) {
+		t.Errorf("task page missing clipboard handler:\n%s", body)
+	}
+
+	code, body = get(t, srv.URL+"/task/T-1?fragment=1")
+	if code != 200 {
+		t.Fatalf("fragment status = %d", code)
+	}
+	if !strings.Contains(body, `<button type="button" class="code-chip" data-copy-code="T-1"`) {
+		t.Errorf("task fragment missing copyable code chip:\n%s", body)
 	}
 }
 

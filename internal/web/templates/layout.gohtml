@@ -246,6 +246,48 @@
 })();
 </script>
 <script>
+// Copy code chips from full pages and dynamically loaded task fragments.
+(function () {
+  function copyText(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(text);
+    }
+    var ta = document.createElement("textarea");
+    ta.value = text;
+    ta.setAttribute("readonly", "");
+    ta.style.position = "fixed";
+    ta.style.left = "-9999px";
+    document.body.appendChild(ta);
+    ta.select();
+    try {
+      document.execCommand("copy");
+      return Promise.resolve();
+    } catch (e) {
+      return Promise.reject(e);
+    } finally {
+      document.body.removeChild(ta);
+    }
+  }
+  document.addEventListener("click", function (e) {
+    var btn = e.target.closest("button.code-chip[data-copy-code]");
+    if (!btn) return;
+    var code = btn.dataset.copyCode;
+    copyText(code).then(function () {
+      var label = btn.textContent;
+      btn.textContent = "Copied";
+      btn.dataset.copied = "true";
+      clearTimeout(btn._copyTimer);
+      btn._copyTimer = setTimeout(function () {
+        btn.textContent = label;
+        delete btn.dataset.copied;
+      }, 1100);
+    }).catch(function () {
+      btn.focus();
+    });
+  });
+})();
+</script>
+<script>
 // Live-reload by polling a lightweight version endpoint. Unlike a held-open
 // SSE stream, each poll is a normal short request that never occupies one of
 // the browser's per-origin connection slots, so many tabs stay responsive.

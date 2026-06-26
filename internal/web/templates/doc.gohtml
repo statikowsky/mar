@@ -1,7 +1,7 @@
 {{define "content"}}
 <p class="subtitle"><a href="/">&larr; back to docs</a></p>
 <h1>{{.Doc.Title}}</h1>
-<p class="meta">{{.Doc.Code}} · <span class="typetag {{.Doc.Type}}">{{.Doc.Type}}</span> · updated {{.Updated}}{{if eq .Doc.Status "archived"}} · <span class="archived-tag">archived</span>{{end}}</p>
+<p class="meta"><button type="button" class="code-chip" data-copy-code="{{.Doc.Code}}" aria-label="Copy {{.Doc.Code}}" title="Copy {{.Doc.Code}}">{{.Doc.Code}}</button> · <span class="typetag {{.Doc.Type}}">{{.Doc.Type}}</span> · updated {{.Updated}}{{if eq .Doc.Status "archived"}} · <span class="archived-tag">archived</span>{{end}}</p>
 <p class="doc-actions">
   {{if eq .Doc.Status "archived"}}
   <button class="docact" data-code="{{.Doc.Code}}" data-action="unarchive">Unarchive</button>
