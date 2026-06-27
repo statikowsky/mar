@@ -2,6 +2,10 @@ columns:
     - name: To do
       tasks:
         - T-MAKE-STORE-MUTATIONS-TRANSACTIONAL
+        - T-ADD-DOC-TOUCH-AND
+        - T-NORMALIZE-EXPLICIT-DATE-TIMESTAMP
+        - T-ADD-WIKILINK-LINT-AND
+        - T-ADD-UNIFIED-SEARCH-COMMAND
     - name: In progress
       tasks: []
     - name: Done
