@@ -19,8 +19,9 @@ func newTaskCmd() *cobra.Command {
 }
 
 func newTaskCreateCmd() *cobra.Command {
-	var title, column, bodyPath, code string
-	var asJSON bool
+	var title, column, bodyPath, code, after, before string
+	var first, last, asJSON bool
+	var index int
 	c := &cobra.Command{
 		Use:   "create",
 		Short: "Create a task",
@@ -34,7 +35,11 @@ func newTaskCreateCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			tk, err := s.CreateTaskWithCode(code, title, body, column)
+			placement, err := taskPlacementFromFlags(cmd, after, before, first, last, index, false)
+			if err != nil {
+				return err
+			}
+			tk, err := s.CreateTaskWithCodeAndPlacement(code, title, body, column, placement)
 			if err != nil {
 				return err
 			}
@@ -49,6 +54,11 @@ func newTaskCreateCmd() *cobra.Command {
 	c.Flags().StringVar(&code, "code", "", "optional task code, e.g. 39 or T-39 (default: auto-numbered)")
 	c.Flags().StringVar(&column, "column", "", "column name (default: first column)")
 	c.Flags().StringVar(&bodyPath, "body", "", "markdown notes file, or -")
+	c.Flags().StringVar(&after, "after", "", "place after this task code")
+	c.Flags().StringVar(&before, "before", "", "place before this task code")
+	c.Flags().BoolVar(&first, "first", false, "place at the top of the column")
+	c.Flags().BoolVar(&last, "last", false, "place at the bottom of the column")
+	c.Flags().IntVar(&index, "index", 0, "place at one-based position in the column")
 	c.Flags().BoolVar(&asJSON, "json", false, "output JSON")
 	c.MarkFlagRequired("title")
 	return c
@@ -176,10 +186,11 @@ func newTaskEditCmd() *cobra.Command {
 }
 
 func newTaskMoveCmd() *cobra.Command {
-	var column, after string
-	var asJSON bool
+	var column, after, before string
+	var first, last, asJSON bool
+	var index int
 	c := &cobra.Command{
-		Use:   "move T-CODE --column NAME [--after T-CODE]",
+		Use:   "move T-CODE [--column NAME] [--after T-CODE | --before T-CODE | --first | --last | --index N]",
 		Short: "Move a task to a column and/or reorder it",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -188,11 +199,11 @@ func newTaskMoveCmd() *cobra.Command {
 				return err
 			}
 			defer s.Close()
-			var afterPtr *string
-			if cmd.Flags().Changed("after") {
-				afterPtr = &after
+			placement, err := taskPlacementFromFlags(cmd, after, before, first, last, index, true)
+			if err != nil {
+				return err
 			}
-			tk, err := s.MoveTask(args[0], column, afterPtr)
+			tk, err := s.MoveTaskWithPlacement(args[0], column, placement)
 			if err != nil {
 				return err
 			}
@@ -205,8 +216,48 @@ func newTaskMoveCmd() *cobra.Command {
 	}
 	c.Flags().StringVar(&column, "column", "", "target column (default: keep current)")
 	c.Flags().StringVar(&after, "after", "", "place after this task code")
+	c.Flags().StringVar(&before, "before", "", "place before this task code")
+	c.Flags().BoolVar(&first, "first", false, "place at the top of the column")
+	c.Flags().BoolVar(&last, "last", false, "place at the bottom of the column")
+	c.Flags().IntVar(&index, "index", 0, "place at one-based position in the column")
 	c.Flags().BoolVar(&asJSON, "json", false, "output JSON")
 	return c
+}
+
+func taskPlacementFromFlags(cmd *cobra.Command, after, before string, first, last bool, index int, defaultFirst bool) (store.Placement, error) {
+	flags := cmd.Flags()
+	changed := 0
+	var placement store.Placement
+	if flags.Changed("after") {
+		changed++
+		placement = store.Placement{Mode: store.PlacementAfter, Code: after}
+	}
+	if flags.Changed("before") {
+		changed++
+		placement = store.Placement{Mode: store.PlacementBefore, Code: before}
+	}
+	if flags.Changed("first") {
+		changed++
+		placement = store.Placement{Mode: store.PlacementFirst}
+	}
+	if flags.Changed("last") {
+		changed++
+		placement = store.Placement{Mode: store.PlacementLast}
+	}
+	if flags.Changed("index") {
+		changed++
+		placement = store.Placement{Mode: store.PlacementIndex, Index: index}
+	}
+	if changed > 1 {
+		return store.Placement{}, fmt.Errorf("use only one of --after / --before / --first / --last / --index")
+	}
+	if changed == 1 {
+		return placement, nil
+	}
+	if defaultFirst {
+		return store.Placement{Mode: store.PlacementFirst}, nil
+	}
+	return store.Placement{Mode: store.PlacementAppend}, nil
 }
 
 func newTaskRmCmd() *cobra.Command {

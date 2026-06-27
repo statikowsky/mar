@@ -25,6 +25,23 @@ func normalizeTaskCode(raw string) (string, error) {
 // so long titles don't yield unwieldy codes. Explicit --code bypasses this.
 const slugMaxWords = 4
 
+type PlacementMode int
+
+const (
+	PlacementAppend PlacementMode = iota
+	PlacementFirst
+	PlacementLast
+	PlacementAfter
+	PlacementBefore
+	PlacementIndex
+)
+
+type Placement struct {
+	Mode  PlacementMode
+	Code  string
+	Index int
+}
+
 func slugifyTitle(title string) string {
 	var b strings.Builder
 	prevHyphen := false
@@ -79,10 +96,21 @@ func (s *Store) CreateTask(title, body, columnName string) (Task, error) {
 	return s.CreateTaskWithCode("", title, body, columnName)
 }
 
+func (s *Store) CreateTaskWithPlacement(title, body, columnName string, placement Placement) (Task, error) {
+	return s.CreateTaskWithCodeAndPlacement("", title, body, columnName, placement)
+}
+
 // CreateTaskWithCode creates a task with a caller-supplied code. An empty
 // code auto-derives from the title slug; a supplied code is normalized to
 // T-<CODE> and must be unique.
 func (s *Store) CreateTaskWithCode(rawCode, title, body, columnName string) (Task, error) {
+	return s.CreateTaskWithCodeAndPlacement(rawCode, title, body, columnName, Placement{Mode: PlacementAppend})
+}
+
+// CreateTaskWithCodeAndPlacement creates a task and inserts it in the selected
+// column according to placement. PlacementAppend preserves the historical
+// create behavior.
+func (s *Store) CreateTaskWithCodeAndPlacement(rawCode, title, body, columnName string, placement Placement) (Task, error) {
 	var out Task
 	err := s.withLock(func() error {
 		d, err := s.load()
@@ -113,11 +141,15 @@ func (s *Store) CreateTaskWithCode(rawCode, title, body, columnName string) (Tas
 		}
 		now := nowStamp()
 		e := &taskEntity{meta: taskMeta{Title: title, Status: "active", Created: now, Updated: now}, body: body}
+		col := &d.board.Columns[idx]
+		insert, err := d.resolveTaskPlacement(col, placement)
+		if err != nil {
+			return err
+		}
 		if err := s.writeTask(code, e); err != nil {
 			return err
 		}
-		col := &d.board.Columns[idx]
-		col.Tasks = append(col.Tasks, code)
+		insertTask(col, code, insert)
 		if err := s.writeBoard(d.board); err != nil {
 			return err
 		}
@@ -126,6 +158,46 @@ func (s *Store) CreateTaskWithCode(rawCode, title, body, columnName string) (Tas
 		return nil
 	})
 	return out, err
+}
+
+func (d *data) resolveTaskPlacement(col *boardColumn, placement Placement) (int, error) {
+	switch placement.Mode {
+	case PlacementAppend, PlacementLast:
+		return len(col.Tasks), nil
+	case PlacementFirst:
+		return 0, nil
+	case PlacementAfter, PlacementBefore:
+		code, _, err := d.findTask(placement.Code)
+		if err != nil {
+			return 0, err
+		}
+		if d.tasks[code].meta.Status != "active" {
+			return 0, fmt.Errorf("task %s is not active", code)
+		}
+		for i, t := range col.Tasks {
+			if t != code {
+				continue
+			}
+			if placement.Mode == PlacementAfter {
+				return i + 1, nil
+			}
+			return i, nil
+		}
+		return 0, fmt.Errorf("task %s is not in the target column", code)
+	case PlacementIndex:
+		if placement.Index < 1 || placement.Index > len(col.Tasks)+1 {
+			return 0, fmt.Errorf("index %d out of range for column %q", placement.Index, col.Name)
+		}
+		return placement.Index - 1, nil
+	default:
+		return 0, fmt.Errorf("unknown placement mode %d", placement.Mode)
+	}
+}
+
+func insertTask(col *boardColumn, code string, insert int) {
+	col.Tasks = append(col.Tasks, "")
+	copy(col.Tasks[insert+1:], col.Tasks[insert:])
+	col.Tasks[insert] = code
 }
 
 func (s *Store) GetTask(code string) (Task, error) {
@@ -259,6 +331,14 @@ func (s *Store) SetTaskDates(code string, created, updated *string) (Task, error
 // MoveTask moves a task to columnName (empty keeps its column) and places
 // it after afterCode, or at the top of the column when afterCode is nil.
 func (s *Store) MoveTask(code, columnName string, afterCode *string) (Task, error) {
+	placement := Placement{Mode: PlacementFirst}
+	if afterCode != nil {
+		placement = Placement{Mode: PlacementAfter, Code: *afterCode}
+	}
+	return s.MoveTaskWithPlacement(code, columnName, placement)
+}
+
+func (s *Store) MoveTaskWithPlacement(code, columnName string, placement Placement) (Task, error) {
 	var out Task
 	err := s.withLock(func() error {
 		d, err := s.load()
@@ -268,13 +348,6 @@ func (s *Store) MoveTask(code, columnName string, afterCode *string) (Task, erro
 		code, e, err := d.findTask(code)
 		if err != nil {
 			return err
-		}
-		var after string
-		if afterCode != nil {
-			after, _, err = d.findTask(*afterCode)
-			if err != nil {
-				return err
-			}
 		}
 		target := d.columnOf(code)
 		if columnName != "" {
@@ -286,23 +359,11 @@ func (s *Store) MoveTask(code, columnName string, afterCode *string) (Task, erro
 		}
 		d.removeFromBoard(code)
 		col := &d.board.Columns[ti]
-		insert := 0
-		if afterCode != nil {
-			ai := -1
-			for j, t := range col.Tasks {
-				if t == after {
-					ai = j
-					break
-				}
-			}
-			if ai == -1 {
-				return fmt.Errorf("task %s is not in the target column", after)
-			}
-			insert = ai + 1
+		insert, err := d.resolveTaskPlacement(col, placement)
+		if err != nil {
+			return err
 		}
-		col.Tasks = append(col.Tasks, "")
-		copy(col.Tasks[insert+1:], col.Tasks[insert:])
-		col.Tasks[insert] = code
+		insertTask(col, code, insert)
 		e.meta.Updated = nowStamp()
 		if err := s.writeTask(code, e); err != nil {
 			return err

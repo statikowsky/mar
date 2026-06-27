@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -219,6 +220,48 @@ func TestTaskCreateMoveAndBoardJSON(t *testing.T) {
 	}
 	if len(byName["To do"]) != 1 || byName["To do"][0] != "T-2" {
 		t.Errorf("To do = %v, want [T-2]", byName["To do"])
+	}
+}
+
+func TestTaskCreateAndMovePlacementFlags(t *testing.T) {
+	chdirTemp(t)
+	runCmd(t, "", "init")
+	runCmd(t, "", "task", "create", "--title", "First", "--code", "1")
+	runCmd(t, "", "task", "create", "--title", "Second", "--code", "2", "--first")
+	runCmd(t, "", "task", "create", "--title", "Third", "--code", "3", "--after", "T-1")
+	runCmd(t, "", "task", "create", "--title", "Fourth", "--code", "4", "--index", "2")
+	if _, err := runCmd(t, "", "task", "move", "T-3", "--column", "To do", "--before", "T-2"); err != nil {
+		t.Fatalf("task move --before: %v", err)
+	}
+	if _, err := runCmd(t, "", "task", "move", "T-1", "--column", "To do", "--last"); err != nil {
+		t.Fatalf("task move --last: %v", err)
+	}
+	out, _ := runCmd(t, "", "task", "list", "--column", "To do", "--json")
+	var tasks []struct {
+		Code string `json:"code"`
+	}
+	if err := json.Unmarshal([]byte(out), &tasks); err != nil {
+		t.Fatalf("unmarshal: %v\n%s", err, out)
+	}
+	got := make([]string, len(tasks))
+	for i, tk := range tasks {
+		got[i] = tk.Code
+	}
+	want := []string{"T-3", "T-2", "T-4", "T-1"}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("order = %v, want %v", got, want)
+	}
+}
+
+func TestTaskPlacementFlagsConflict(t *testing.T) {
+	chdirTemp(t)
+	runCmd(t, "", "init")
+	runCmd(t, "", "task", "create", "--title", "First", "--code", "1")
+	if _, err := runCmd(t, "", "task", "create", "--title", "Bad", "--first", "--last"); err == nil {
+		t.Fatal("expected create placement conflict")
+	}
+	if _, err := runCmd(t, "", "task", "move", "T-1", "--first", "--index", "1"); err == nil {
+		t.Fatal("expected move placement conflict")
 	}
 }
 

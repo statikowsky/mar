@@ -54,13 +54,14 @@ Each command takes `--json`. Single-letter aliases shown in parentheses.
 
 ### task (t)
 
-    mar task create --title T [--column C] [--code X] [--body -|FILE]
+    mar task create --title T [--column C] [--code X] [--body -|FILE] [--after T | --before T | --first | --last | --index N]
         -> the created task object
     mar task list [--column C] [--status active|archived]
         -> [task, ...]   (default: active only; each task includes "column")
     mar task show T-CODE           -> task object (+ "docs": linked doc codes)
     mar task edit T-CODE [--title ...] [--body -|FILE] [--created D] [--updated D]
-    mar task move T-CODE --column C [--after T-OTHER]   # no --after = top
+    mar task move T-CODE [--column C] [--after T | --before T | --first | --last | --index N]
+        # no placement flag = top; task create defaults to bottom
     mar task archive T-CODE        -> {"archived": true, "code": ...}
     mar task unarchive T-CODE      -> {"unarchived": true, "code": ...}
     mar task rm T-CODE --force     -> {"deleted": true, "code": ...}

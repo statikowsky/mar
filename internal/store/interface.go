@@ -14,12 +14,15 @@ type Interface interface {
 	RemoveColumn(name string, force bool) error
 	CreateTask(title, body, columnName string) (Task, error)
 	CreateTaskWithCode(rawCode, title, body, columnName string) (Task, error)
+	CreateTaskWithPlacement(title, body, columnName string, placement Placement) (Task, error)
+	CreateTaskWithCodeAndPlacement(rawCode, title, body, columnName string, placement Placement) (Task, error)
 	GetTask(code string) (Task, error)
 	ListTasks(columnName, status string) ([]Task, error)
 	ArchivedTasks() ([]Task, error)
 	EditTask(code string, title, body *string) (Task, error)
 	SetTaskDates(code string, created, updated *string) (Task, error)
 	MoveTask(code, columnName string, afterCode *string) (Task, error)
+	MoveTaskWithPlacement(code, columnName string, placement Placement) (Task, error)
 	ArchiveTask(code string) error
 	UnarchiveTask(code string) error
 	DeleteTask(code string) error

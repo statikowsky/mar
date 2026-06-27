@@ -115,6 +115,58 @@ func TestCreateTaskInNamedColumn(t *testing.T) {
 	}
 }
 
+func TestCreateTaskWithPlacementBeforeFirst(t *testing.T) {
+	s := newTestStore(t)
+	first, _ := s.CreateTask("First", "", "")
+	if _, err := s.CreateTaskWithPlacement("Pinned", "", "To do", Placement{Mode: PlacementBefore, Code: first.Code}); err != nil {
+		t.Fatalf("CreateTaskWithPlacement: %v", err)
+	}
+	tasks, _ := s.ListTasks("To do", "")
+	if !eq(codes(tasks), []string{"T-PINNED", "T-FIRST"}) {
+		t.Errorf("order = %v, want [T-PINNED T-FIRST]", codes(tasks))
+	}
+}
+
+func TestCreateTaskWithPlacementFirstLastAfterAndIndex(t *testing.T) {
+	s := newTestStore(t)
+	a, _ := s.CreateTask("a", "", "")
+	b, _ := s.CreateTaskWithPlacement("b", "", "To do", Placement{Mode: PlacementFirst})
+	c, _ := s.CreateTaskWithPlacement("c", "", "To do", Placement{Mode: PlacementAfter, Code: a.Code})
+	d, _ := s.CreateTaskWithPlacement("d", "", "To do", Placement{Mode: PlacementIndex, Index: 2})
+	e, _ := s.CreateTaskWithPlacement("e", "", "To do", Placement{Mode: PlacementLast})
+	tasks, _ := s.ListTasks("To do", "")
+	want := []string{b.Code, d.Code, a.Code, c.Code, e.Code}
+	if !eq(codes(tasks), want) {
+		t.Errorf("order = %v, want %v", codes(tasks), want)
+	}
+}
+
+func TestCreateTaskWithPlacementRejectsInvalidIndex(t *testing.T) {
+	s := newTestStore(t)
+	if _, err := s.CreateTaskWithPlacement("x", "", "To do", Placement{Mode: PlacementIndex, Index: 2}); err == nil {
+		t.Fatal("expected invalid index error")
+	}
+}
+
+func TestCreateTaskWithPlacementTargetMustBeInColumn(t *testing.T) {
+	s := newTestStore(t)
+	target, _ := s.CreateTask("target", "", "Done")
+	if _, err := s.CreateTaskWithPlacement("x", "", "To do", Placement{Mode: PlacementAfter, Code: target.Code}); err == nil {
+		t.Fatal("expected target-column error")
+	}
+}
+
+func TestCreateTaskWithPlacementTargetMustBeActive(t *testing.T) {
+	s := newTestStore(t)
+	target, _ := s.CreateTask("target", "", "")
+	if err := s.ArchiveTask(target.Code); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.CreateTaskWithPlacement("x", "", "To do", Placement{Mode: PlacementAfter, Code: target.Code}); err == nil {
+		t.Fatal("expected inactive-target error")
+	}
+}
+
 func TestCreateTaskUnknownColumnFails(t *testing.T) {
 	s := newTestStore(t)
 	if _, err := s.CreateTask("X", "", "Nonexistent"); err == nil {
@@ -301,6 +353,45 @@ func TestMoveTaskAfterAnother(t *testing.T) {
 	tasks, _ := s.ListTasks("To do", "")
 	if !eq(codes(tasks), []string{"T-A", "T-C", "T-B"}) {
 		t.Errorf("order = %v, want [T-A T-C T-B]", codes(tasks))
+	}
+}
+
+func TestMoveTaskBeforeAnother(t *testing.T) {
+	s := newTestStore(t)
+	s.CreateTask("a", "", "")
+	b, _ := s.CreateTask("b", "", "")
+	c, _ := s.CreateTask("c", "", "")
+	if _, err := s.MoveTaskWithPlacement(c.Code, "To do", Placement{Mode: PlacementBefore, Code: b.Code}); err != nil {
+		t.Fatal(err)
+	}
+	tasks, _ := s.ListTasks("To do", "")
+	if !eq(codes(tasks), []string{"T-A", "T-C", "T-B"}) {
+		t.Errorf("order = %v, want [T-A T-C T-B]", codes(tasks))
+	}
+}
+
+func TestMoveTaskLastAndIndex(t *testing.T) {
+	s := newTestStore(t)
+	a, _ := s.CreateTask("a", "", "")
+	b, _ := s.CreateTask("b", "", "")
+	c, _ := s.CreateTask("c", "", "")
+	if _, err := s.MoveTaskWithPlacement(a.Code, "To do", Placement{Mode: PlacementLast}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.MoveTaskWithPlacement(c.Code, "To do", Placement{Mode: PlacementIndex, Index: 2}); err != nil {
+		t.Fatal(err)
+	}
+	tasks, _ := s.ListTasks("To do", "")
+	if !eq(codes(tasks), []string{b.Code, c.Code, a.Code}) {
+		t.Errorf("order = %v, want [%s %s %s]", codes(tasks), b.Code, c.Code, a.Code)
+	}
+}
+
+func TestMoveTaskRejectsInvalidIndex(t *testing.T) {
+	s := newTestStore(t)
+	a, _ := s.CreateTask("a", "", "")
+	if _, err := s.MoveTaskWithPlacement(a.Code, "To do", Placement{Mode: PlacementIndex, Index: 2}); err == nil {
+		t.Fatal("expected invalid index error")
 	}
 }
 

@@ -21,9 +21,9 @@ below.
 Build the binary with `make build` (produces `bin/mar`), then:
 
 - **See the board:** `bin/mar board show`
-- **Add a task:** `bin/mar task create --title "..." [--column "To do"] [--body -]`
-- **Move / reorder:** `bin/mar task move T-N --column "In progress" [--after T-M]`
-  (no `--after` places it at the top of the column)
+- **Add a task:** `bin/mar task create --title "..." [--column "To do"] [--body -] [--first|--last|--after T-M|--before T-M|--index N]`
+- **Move / reorder:** `bin/mar task move T-N --column "In progress" [--after T-M|--before T-M|--first|--last|--index N]`
+  (also supports `--before`, `--first`, `--last`, and `--index`; no placement flag places it at the top of the column)
 - **Mark done:** `bin/mar task move T-N --column "Done"`
 - **Docs:** `bin/mar doc create|list|show|edit|...` (see `README.md`)
 

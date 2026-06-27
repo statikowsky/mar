@@ -50,7 +50,9 @@ syntax-highlighted code included. Link to other docs or tasks inline with
 
     mar board show
     mar task create --title "Wire auth" --column "To do"   # -> T-WIRE-AUTH
-    mar task move T-1 --column "In progress" --after T-3
+    mar task create --title "Pin this" --first
+    mar task move T-1 --column "In progress" --before T-3
+    mar task move T-2 --index 1
     mar column add "Review" --after "In progress"
     mar doc link DOC-AUTH T-1                               # link doc <-> task
 
