@@ -40,6 +40,7 @@ Each top-level command has a single-letter alias (`mar s`, `mar b show`,
     mar doc import report.html --code AUTH --type design   # HTML -> Markdown
     mar doc list
     mar doc show DOC-AUTH
+    mar search markdown                                    # titles + bodies, docs & tasks
 
 Bodies are GitHub-flavored Markdown — alerts (`> [!WARNING]`) and
 syntax-highlighted code included. Link to other docs or tasks inline with

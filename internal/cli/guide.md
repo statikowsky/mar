@@ -91,6 +91,12 @@ Each command takes `--json`. Single-letter aliases shown in parentheses.
 
     mar backlink CODE                     -> docs and tasks that [[link]] to CODE
 
+### search
+
+    mar search TERM [--docs] [--tasks] [--type TYPE] [--status active|archived|all]
+        -> [{kind, code, title, field, snippet, type|column, status}, ...]
+        # case-insensitive substring over titles and bodies; active only by default
+
 ### board (b)
 
     mar board show                 # active cards only, archived listed separately

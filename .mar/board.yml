@@ -1,7 +1,6 @@
 columns:
     - name: To do
       tasks:
-        - T-ADD-UNIFIED-SEARCH-COMMAND
         - T-MAKE-STORE-MUTATIONS-TRANSACTIONAL
         - T-ADD-DOC-TOUCH-AND
         - T-NORMALIZE-EXPLICIT-DATE-TIMESTAMP
@@ -9,6 +8,7 @@ columns:
       tasks: []
     - name: Done
       tasks:
+        - T-ADD-UNIFIED-SEARCH-COMMAND
         - T-ADD-WIKILINK-LINT-AND
         - T-ADD-POSITIONAL-TASK-PLACEMENT
         - T-AUTOMATE-HOMEBREW-TAP-UPDATES

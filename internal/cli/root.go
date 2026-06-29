@@ -32,7 +32,7 @@ func newRootCmd() *cobra.Command {
 	root.AddCommand(newDocCmd())
 	root.AddCommand(newTaskCmd(), newBoardCmd(), newColumnCmd())
 	root.AddCommand(newServeCmd(), newVersionCmd(), newGuideCmd())
-	root.AddCommand(newBacklinkCmd())
+	root.AddCommand(newBacklinkCmd(), newSearchCmd())
 	return root
 }
 

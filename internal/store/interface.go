@@ -44,6 +44,7 @@ type Interface interface {
 	Resolver() (CodeResolver, error)
 	Backlinks(rawCode string) ([]Backlink, error)
 	Lint() ([]LintFinding, error)
+	Search(term string, opts SearchOpts) ([]SearchResult, error)
 }
 
 var _ Interface = (*Store)(nil)

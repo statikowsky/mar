@@ -354,6 +354,52 @@ func TestBacklinkCommand(t *testing.T) {
 	}
 }
 
+func TestSearchJSONAndPlain(t *testing.T) {
+	chdirTemp(t)
+	runCmd(t, "", "init")
+	runCmd(t, "The body mentions widgets.", "doc", "create",
+		"--code", "auth", "--title", "Auth design", "--type", "design", "--body", "-")
+	runCmd(t, "", "task", "create", "--title", "Build widgets", "--code", "1")
+
+	out, err := runCmd(t, "", "search", "widgets", "--json")
+	if err != nil {
+		t.Fatalf("search --json: %v", err)
+	}
+	var results []struct {
+		Kind, Code, Field, Snippet string
+	}
+	if err := json.Unmarshal([]byte(out), &results); err != nil {
+		t.Fatalf("unmarshal: %v\n%s", err, out)
+	}
+	if len(results) != 2 {
+		t.Fatalf("results = %+v, want 2 (doc body + task title)", results)
+	}
+	byCode := map[string]string{}
+	for _, r := range results {
+		byCode[r.Code] = r.Field
+	}
+	if byCode["DOC-AUTH"] != "body" || byCode["T-1"] != "title" {
+		t.Errorf("fields = %v, want DOC-AUTH body + T-1 title", byCode)
+	}
+
+	// Plain output is grep-friendly: one line per match including the code.
+	plain, err := runCmd(t, "", "search", "widgets")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(plain, "DOC-AUTH") || !strings.Contains(plain, "T-1") {
+		t.Errorf("plain output missing codes: %s", plain)
+	}
+}
+
+func TestSearchEmptyTermFails(t *testing.T) {
+	chdirTemp(t)
+	runCmd(t, "", "init")
+	if _, err := runCmd(t, "", "search", ""); err == nil {
+		t.Error("empty search term should fail")
+	}
+}
+
 func TestColumnAddBeforeAndMove(t *testing.T) {
 	chdirTemp(t)
 	runCmd(t, "", "init")
