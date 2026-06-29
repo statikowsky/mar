@@ -14,7 +14,7 @@ func newDocCmd() *cobra.Command {
 	cmd.AddCommand(
 		newDocCreateCmd(), newDocImportCmd(), newDocShowCmd(), newDocListCmd(),
 		newDocEditCmd(), newDocMoveCmd(), newDocArchiveCmd(), newDocUnarchiveCmd(),
-		newDocRmCmd(), newDocLinkCmd(), newDocUnlinkCmd(),
+		newDocRmCmd(), newDocLinkCmd(), newDocUnlinkCmd(), newDocLintCmd(),
 	)
 	return cmd
 }
@@ -357,6 +357,62 @@ func newDocRmCmd() *cobra.Command {
 	c.Flags().BoolVar(&force, "force", false, "confirm deletion")
 	c.Flags().BoolVar(&asJSON, "json", false, "output JSON")
 	return c
+}
+
+func newDocLintCmd() *cobra.Command {
+	var asJSON, strict bool
+	c := &cobra.Command{
+		Use:   "lint",
+		Short: "Report unresolved [[wiki-links]] across active docs and tasks",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			s, err := openStore()
+			if err != nil {
+				return err
+			}
+			defer s.Close()
+			findings, err := s.Lint()
+			if err != nil {
+				return err
+			}
+			if asJSON {
+				if err := printJSON(cmd, findings); err != nil {
+					return err
+				}
+			} else {
+				printLintFindings(cmd, findings)
+			}
+			if strict && len(findings) > 0 {
+				return fmt.Errorf("%d unresolved wiki-link(s)", len(findings))
+			}
+			return nil
+		},
+	}
+	c.Flags().BoolVar(&asJSON, "json", false, "output JSON")
+	c.Flags().BoolVar(&strict, "strict", false, "exit non-zero if any unresolved links are found")
+	return c
+}
+
+// printLintFindings prints findings grouped by source, each detail line
+// indented and naming the target, line, and status.
+func printLintFindings(cmd *cobra.Command, findings []store.LintFinding) {
+	out := cmd.OutOrStdout()
+	if len(findings) == 0 {
+		fmt.Fprintln(out, "No unresolved wiki-links.")
+		return
+	}
+	var last string
+	for _, f := range findings {
+		if f.Source != last {
+			fmt.Fprintf(out, "%s:\n", f.Source)
+			last = f.Source
+		}
+		loc := ""
+		if f.Line > 0 {
+			loc = fmt.Sprintf("line %d: ", f.Line)
+		}
+		fmt.Fprintf(out, "  %s[[%s]] %s\n", loc, f.Target, f.Status)
+	}
 }
 
 func newDocLinkCmd() *cobra.Command {

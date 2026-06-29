@@ -2,7 +2,7 @@
 title: Add wikilink lint and backlink inspection
 status: active
 created: "2026-06-27T12:11:40.030439796Z"
-updated: "2026-06-27T12:11:40.030439796Z"
+updated: "2026-06-29T18:29:07.738262Z"
 ---
 Add validation and inspection tooling for inline `[[...]]` links.
 

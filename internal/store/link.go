@@ -3,6 +3,7 @@ package store
 import (
 	"fmt"
 	"sort"
+	"strings"
 
 	"github.com/statikowsky/mar/internal/render"
 )
@@ -78,6 +79,81 @@ func (s *Store) Backlinks(rawCode string) ([]Backlink, error) {
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].Code < out[j].Code })
 	return out, nil
+}
+
+// LintFinding is one unresolved inline wiki-link found by Lint.
+type LintFinding struct {
+	Source     string `json:"source"`               // DOC-X or T-X containing the link
+	SourceKind string `json:"source_kind"`          // doc | task
+	Target     string `json:"target"`               // target code as written
+	Normalized string `json:"normalized,omitempty"` // canonical code, when the target parses
+	Line       int    `json:"line,omitempty"`       // 1-based line in the source body
+	Label      string `json:"label,omitempty"`      // label, for [[CODE|label]] links
+	Status     string `json:"status"`               // dangling | invalid-code
+}
+
+// Lint scans every active doc and task body for inline wiki-links and reports
+// the ones that do not resolve to an existing doc or task. A target that parses
+// as a code but names nothing is "dangling"; one that is not a valid code form
+// is "invalid-code". Findings are sorted by source then line. Links inside
+// fenced code blocks and code spans are ignored, like Backlinks. ponytail:
+// reparses every body per call; add a derived index if it gets slow.
+func (s *Store) Lint() ([]LintFinding, error) {
+	d, err := s.load()
+	if err != nil {
+		return nil, err
+	}
+	var out []LintFinding
+	scan := func(code, kind, body string) {
+		for _, ref := range render.RefsDetailed(body) {
+			if _, _, ok := d.resolveRef(ref.Code); ok {
+				continue
+			}
+			f := LintFinding{Source: code, SourceKind: kind, Target: ref.Code, Line: ref.Line, Status: "invalid-code"}
+			if norm, ok := normalizeRefCode(ref.Code); ok {
+				f.Normalized, f.Status = norm, "dangling"
+			}
+			if ref.Label != ref.Code {
+				f.Label = ref.Label
+			}
+			out = append(out, f)
+		}
+	}
+	for code, e := range d.docs {
+		if e.meta.Status == "active" {
+			scan(code, "doc", e.body)
+		}
+	}
+	for code, e := range d.tasks {
+		if e.meta.Status == "active" {
+			scan(code, "task", e.body)
+		}
+	}
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].Source != out[j].Source {
+			return out[i].Source < out[j].Source
+		}
+		return out[i].Line < out[j].Line
+	})
+	return out, nil
+}
+
+// normalizeRefCode canonicalizes a raw wiki-link target to a doc or task code,
+// preferring a task code only when the target is T-prefixed (otherwise doc
+// first, mirroring resolveRef). ok=false means the target is not a valid code.
+func normalizeRefCode(raw string) (string, bool) {
+	if strings.HasPrefix(strings.ToUpper(strings.TrimSpace(raw)), "T-") {
+		if code, err := normalizeTaskCode(raw); err == nil {
+			return code, true
+		}
+	}
+	if code, err := normalizeDocCode(raw); err == nil {
+		return code, true
+	}
+	if code, err := normalizeTaskCode(raw); err == nil {
+		return code, true
+	}
+	return "", false
 }
 
 func (s *Store) Link(docCode, taskCode string) error {

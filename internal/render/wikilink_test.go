@@ -68,3 +68,15 @@ func TestRefs(t *testing.T) {
 		t.Errorf("Refs = %v, want %v", got, want)
 	}
 }
+
+func TestRefsDetailed(t *testing.T) {
+	src := "intro [[A]]\nmore text\nthen [[B|the label]] and `[[C]]`\n```\n[[D]]\n```\n"
+	got := RefsDetailed(src)
+	want := []Ref{
+		{Code: "A", Label: "A", Line: 1},
+		{Code: "B", Label: "the label", Line: 3}, // labelled; code-span [[C]] and fenced [[D]] excluded
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("RefsDetailed = %+v, want %+v", got, want)
+	}
+}

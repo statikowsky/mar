@@ -43,6 +43,7 @@ type Interface interface {
 	TaskCodesForDoc(docCode string) ([]string, error)
 	Resolver() (CodeResolver, error)
 	Backlinks(rawCode string) ([]Backlink, error)
+	Lint() ([]LintFinding, error)
 }
 
 var _ Interface = (*Store)(nil)

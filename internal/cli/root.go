@@ -32,7 +32,45 @@ func newRootCmd() *cobra.Command {
 	root.AddCommand(newDocCmd())
 	root.AddCommand(newTaskCmd(), newBoardCmd(), newColumnCmd())
 	root.AddCommand(newServeCmd(), newVersionCmd(), newGuideCmd())
+	root.AddCommand(newBacklinkCmd())
 	return root
+}
+
+// newBacklinkCmd is top-level (not under doc/task) because backlinks are a graph
+// query over both kinds: it accepts a doc or task code and lists every doc and
+// task whose body wiki-links to it.
+func newBacklinkCmd() *cobra.Command {
+	var asJSON bool
+	c := &cobra.Command{
+		Use:     "backlink CODE",
+		Aliases: []string{"backlinks"},
+		Short:   "List docs and tasks that wiki-link to a doc or task",
+		Args:    cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			s, err := openStore()
+			if err != nil {
+				return err
+			}
+			defer s.Close()
+			links, err := s.Backlinks(args[0])
+			if err != nil {
+				return err
+			}
+			if asJSON {
+				return printJSON(cmd, links)
+			}
+			if len(links) == 0 {
+				fmt.Fprintln(cmd.OutOrStdout(), "No backlinks.")
+				return nil
+			}
+			for _, b := range links {
+				fmt.Fprintf(cmd.OutOrStdout(), "%-14s %-5s %s\n", b.Code, b.Kind, b.Title)
+			}
+			return nil
+		},
+	}
+	c.Flags().BoolVar(&asJSON, "json", false, "output JSON")
+	return c
 }
 
 func newVersionCmd() *cobra.Command {

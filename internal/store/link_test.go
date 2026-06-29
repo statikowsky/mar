@@ -135,6 +135,58 @@ func TestBacklinksIgnoresCodeFence(t *testing.T) {
 	}
 }
 
+func TestLint(t *testing.T) {
+	s := newTestStore(t)
+	s.CreateDoc("auth", "Auth", "design", "")
+	tk, _ := s.CreateTask("Wire it", "", "")
+	// One link resolves to a doc, one to the task, one is a dangling code, and
+	// one is not a valid code at all. Only the bad two should be reported.
+	s.CreateDoc("login", "Login", "design",
+		"Built on [[AUTH]] and [["+tk.Code+"]].\nSee [[GHOST]] and [[not a code]].")
+	// A fenced dangling link must be ignored.
+	s.CreateTask("Other", "```\n[[ALSO-GHOST]]\n```", "")
+
+	findings, err := s.Lint()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(findings) != 2 {
+		t.Fatalf("Lint = %+v, want 2 findings", findings)
+	}
+	byTarget := map[string]LintFinding{}
+	for _, f := range findings {
+		byTarget[f.Target] = f
+	}
+	ghost := byTarget["GHOST"]
+	if ghost.Status != "dangling" || ghost.Normalized != "DOC-GHOST" || ghost.Source != "DOC-LOGIN" || ghost.Line != 2 {
+		t.Errorf("GHOST finding = %+v, want dangling DOC-GHOST in DOC-LOGIN line 2", ghost)
+	}
+	if bad := byTarget["not a code"]; bad.Status != "invalid-code" || bad.Normalized != "" {
+		t.Errorf("invalid finding = %+v, want invalid-code with no normalized", bad)
+	}
+}
+
+func TestLintSkipsArchivedSources(t *testing.T) {
+	s := newTestStore(t)
+	d, _ := s.CreateDoc("stale", "Stale", "design", "Links to [[GHOST]].")
+	if got, _ := s.Lint(); len(got) != 1 {
+		t.Fatalf("want 1 finding before archive, got %+v", got)
+	}
+	s.ArchiveDoc(d.Code)
+	if got, _ := s.Lint(); len(got) != 0 {
+		t.Errorf("archived source should not be linted, got %+v", got)
+	}
+}
+
+func TestLintResolvesTaskTarget(t *testing.T) {
+	s := newTestStore(t)
+	tk, _ := s.CreateTask("Real", "", "")
+	s.CreateDoc("doc", "Doc", "design", "Points to [["+tk.Code+"]].")
+	if got, _ := s.Lint(); len(got) != 0 {
+		t.Errorf("link to existing task should resolve, got %+v", got)
+	}
+}
+
 func TestResolver(t *testing.T) {
 	s := newTestStore(t)
 	s.CreateDoc("auth", "Auth", "design", "")

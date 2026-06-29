@@ -44,7 +44,8 @@ Each top-level command has a single-letter alias (`mar s`, `mar b show`,
 Bodies are GitHub-flavored Markdown — alerts (`> [!WARNING]`) and
 syntax-highlighted code included. Link to other docs or tasks inline with
 `[[DOC-CODE]]` / `[[T-CODE]]` wiki-links; each doc lists what references it
-("Referenced by"). `--body` takes a file path or `-` for stdin.
+("Referenced by"), or run `mar backlink CODE`. `mar doc lint` reports dangling
+links (`--strict` to fail CI). `--body` takes a file path or `-` for stdin.
 
 ## Board
 

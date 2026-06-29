@@ -41,7 +41,11 @@ commit `.mar/` like any other source.
   placeholder ("red link"), so you can link before the page exists.
 - **Backlinks** are derived from those wiki-links: `mar doc show` (and the web
   doc page) list every doc and task whose body links to it under
-  "Referenced by". Nothing to maintain — edit a body and the backlinks follow.
+  "Referenced by". `mar backlink CODE` is the focused query. Nothing to
+  maintain — edit a body and the backlinks follow.
+- **Lint** finds dangling wiki-links: `mar doc lint` reports `[[...]]` targets
+  that don't resolve. Dangling links are fine by default (link before the page
+  exists); add `--strict` to fail CI on them.
 
 ## Commands
 
@@ -80,6 +84,12 @@ Each command takes `--json`. Single-letter aliases shown in parentheses.
     mar doc archive DOC-CODE / mar doc unarchive DOC-CODE
     mar doc rm DOC-CODE --force
     mar doc link DOC-CODE T-CODE / mar doc unlink DOC-CODE T-CODE
+    mar doc lint [--strict]               -> unresolved [[wiki-links]] by source
+        # exit 0 with findings by default; --strict exits non-zero on any
+
+### backlink
+
+    mar backlink CODE                     -> docs and tasks that [[link]] to CODE
 
 ### board (b)
 

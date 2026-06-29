@@ -292,6 +292,68 @@ func TestSingleLetterAliases(t *testing.T) {
 	}
 }
 
+func TestDocLintJSONAndStrict(t *testing.T) {
+	chdirTemp(t)
+	runCmd(t, "", "init")
+	runCmd(t, "", "doc", "create", "--code", "auth", "--title", "Auth", "--type", "design")
+	runCmd(t, "First line\nLinks to [[GHOST]].", "doc", "create",
+		"--code", "login", "--title", "Login", "--type", "design", "--body", "-")
+
+	out, err := runCmd(t, "", "doc", "lint", "--json")
+	if err != nil {
+		t.Fatalf("doc lint --json: %v", err)
+	}
+	var findings []struct {
+		Source, Target, Status string
+		Line                   int
+	}
+	if err := json.Unmarshal([]byte(out), &findings); err != nil {
+		t.Fatalf("unmarshal: %v\n%s", err, out)
+	}
+	if len(findings) != 1 {
+		t.Fatalf("findings = %+v, want 1", findings)
+	}
+	f := findings[0]
+	if f.Source != "DOC-LOGIN" || f.Target != "GHOST" || f.Status != "dangling" || f.Line != 2 {
+		t.Errorf("finding = %+v, want DOC-LOGIN GHOST dangling line 2", f)
+	}
+
+	// --strict exits non-zero when there are findings...
+	if _, err := runCmd(t, "", "doc", "lint", "--strict"); err == nil {
+		t.Error("doc lint --strict should fail with dangling links")
+	}
+	// ...and zero when everything resolves.
+	runCmd(t, "", "doc", "create", "--code", "ghost", "--title", "Ghost", "--type", "design")
+	if _, err := runCmd(t, "", "doc", "lint", "--strict"); err != nil {
+		t.Errorf("doc lint --strict should pass once GHOST exists: %v", err)
+	}
+}
+
+func TestBacklinkCommand(t *testing.T) {
+	chdirTemp(t)
+	runCmd(t, "", "init")
+	runCmd(t, "", "doc", "create", "--code", "auth", "--title", "Auth", "--type", "design")
+	runCmd(t, "Built on [[AUTH]].", "doc", "create",
+		"--code", "login", "--title", "Login", "--type", "design", "--body", "-")
+	runCmd(t, "See [[AUTH|the doc]].", "task", "create", "--title", "Wire it", "--code", "1", "--body", "-")
+
+	out, err := runCmd(t, "", "backlink", "AUTH", "--json")
+	if err != nil {
+		t.Fatalf("backlink: %v", err)
+	}
+	var links []struct{ Code, Kind string }
+	if err := json.Unmarshal([]byte(out), &links); err != nil {
+		t.Fatalf("unmarshal: %v\n%s", err, out)
+	}
+	got := map[string]string{}
+	for _, b := range links {
+		got[b.Code] = b.Kind
+	}
+	if got["DOC-LOGIN"] != "doc" || got["T-1"] != "task" {
+		t.Errorf("backlinks = %v, want DOC-LOGIN doc + T-1 task", got)
+	}
+}
+
 func TestColumnAddBeforeAndMove(t *testing.T) {
 	chdirTemp(t)
 	runCmd(t, "", "init")

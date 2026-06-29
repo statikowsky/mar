@@ -2,7 +2,7 @@
 title: Add unified search command
 status: active
 created: "2026-06-27T12:12:26.187534752Z"
-updated: "2026-06-27T14:09:02.00160645Z"
+updated: "2026-06-29T18:20:12.385488Z"
 ---
 Add a single `mar search <term>` command across docs and tasks.
 

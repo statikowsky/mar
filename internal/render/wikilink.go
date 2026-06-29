@@ -20,11 +20,13 @@ var resolverKey = parser.NewContextKey()
 
 // wikiLink is an inline [[CODE]] / [[CODE|label]] reference. URL/Missing are
 // filled in at parse time from the Resolver in the parser context, so the
-// renderer stays a pure leaf write.
+// renderer stays a pure leaf write. offset is the byte position of the opening
+// '[' in the source, used by RefsDetailed to report a line number.
 type wikiLink struct {
 	ast.BaseInline
 	Code, Label, URL string
 	Missing          bool
+	offset           int
 }
 
 var kindWikiLink = ast.NewNodeKind("WikiLink")
@@ -42,7 +44,7 @@ type wikiLinkParser struct{}
 func (wikiLinkParser) Trigger() []byte { return []byte{'['} }
 
 func (wikiLinkParser) Parse(parent ast.Node, block text.Reader, pc parser.Context) ast.Node {
-	line, _ := block.PeekLine()
+	line, seg := block.PeekLine()
 	if len(line) < 5 || line[1] != '[' {
 		return nil
 	}
@@ -65,7 +67,7 @@ func (wikiLinkParser) Parse(parent ast.Node, block text.Reader, pc parser.Contex
 	}
 	block.Advance(end + 2)
 
-	n := &wikiLink{Code: string(code), Label: string(bytes.TrimSpace(label))}
+	n := &wikiLink{Code: string(code), Label: string(bytes.TrimSpace(label)), offset: seg.Start}
 	if n.Label == "" {
 		n.Label = n.Code
 	}
@@ -115,19 +117,47 @@ func renderWikiLink(w util.BufWriter, _ []byte, node ast.Node, entering bool) (a
 	return ast.WalkContinue, nil
 }
 
-// Refs returns the raw target codes of every wiki-link in source, in document
-// order with duplicates kept. Parsing (not regex) makes it fence- and
-// code-span-safe: [[X]] inside `code` or a fenced block is not a reference.
-func Refs(source string) []string {
-	doc := md.Parser().Parse(text.NewReader([]byte(source)))
-	var refs []string
+// Ref is one wiki-link occurrence: the raw target Code, its display Label
+// (equal to Code when the link had no [[CODE|label]] form), and the 1-based
+// Line in source where it appears.
+type Ref struct {
+	Code  string
+	Label string
+	Line  int
+}
+
+// RefsDetailed returns every wiki-link in source, in document order with
+// duplicates kept. Parsing (not regex) makes it fence- and code-span-safe:
+// [[X]] inside `code` or a fenced block is not a reference.
+func RefsDetailed(source string) []Ref {
+	src := []byte(source)
+	doc := md.Parser().Parse(text.NewReader(src))
+	var refs []Ref
 	_ = ast.Walk(doc, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
 		if entering {
 			if wl, ok := n.(*wikiLink); ok {
-				refs = append(refs, wl.Code)
+				refs = append(refs, Ref{Code: wl.Code, Label: wl.Label, Line: lineAt(src, wl.offset)})
 			}
 		}
 		return ast.WalkContinue, nil
 	})
 	return refs
+}
+
+// Refs returns just the raw target codes from RefsDetailed.
+func Refs(source string) []string {
+	detailed := RefsDetailed(source)
+	codes := make([]string, len(detailed))
+	for i, r := range detailed {
+		codes[i] = r.Code
+	}
+	return codes
+}
+
+// lineAt returns the 1-based line number of byte offset in src.
+func lineAt(src []byte, offset int) int {
+	if offset > len(src) {
+		offset = len(src)
+	}
+	return 1 + bytes.Count(src[:offset], []byte{'\n'})
 }
