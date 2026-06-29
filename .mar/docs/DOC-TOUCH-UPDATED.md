@@ -66,4 +66,4 @@ The command should preserve `created`, title, type, body, links, and status; onl
 
 ## Related
 
-See [[T-NORMALIZE-EXPLICIT-DATE-PRECISION]] for the timestamp precision inconsistency that this command will expose more often.
+See [[T-NORMALIZE-EXPLICIT-DATE-TIMESTAMP]] for the timestamp precision inconsistency that this command will expose more often.
