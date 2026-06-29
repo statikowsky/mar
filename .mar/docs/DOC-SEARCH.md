@@ -3,7 +3,7 @@ title: Unified search command
 type: analysis
 status: active
 created: "2026-06-27T12:12:47.793706254Z"
-updated: "2026-06-27T14:08:53.507177443Z"
+updated: "2026-06-29T00:00:00Z"
 tasks:
     - T-ADD-UNIFIED-SEARCH-COMMAND
 ---
@@ -106,3 +106,17 @@ Useful initial filters:
 - Snippet includes the matched term and does not include YAML frontmatter.
 - Search works when no external search binary is present.
 - If local-tool acceleration is implemented, tests cover path-to-entity mapping and frontmatter filtering with a fake backend or fixture.
+
+## Performance benchmark
+
+A measurement-only Go benchmark, added alongside the search implementation (it needs `store.Search()` to exist). Not a CI gate: no thresholds, no assertions. Run on demand with `go test -bench=Search ./internal/store/`.
+
+What it measures is the **cold path**, not the in-memory scan. Every `mar search` is a fresh process: launch, `store.load()` (reads and YAML-parses every file from disk), scan, exit. The `load()` reparse dominates — the same per-call reparse already flagged by a `ponytail:` comment in `internal/store/link.go`. So the benchmark calls `store.Search(term)` end-to-end against an on-disk temp store. Benchmarking only the already-loaded slice scan would understate real cost by orders of magnitude and mislead.
+
+Shape:
+
+- One file, `internal/store/search_bench_test.go`.
+- A `synthStore(b, n)` helper writes `n` docs and `n` tasks into a `b.TempDir()` store, each with a realistic ~1–2 KB markdown body, seeded so the term hits a known fraction.
+- `BenchmarkSearch` with `b.Run` sub-benchmarks over a scale ladder of **100, 1 000, 10 000** (each value is docs + tasks, so 200 / 2 000 / 20 000 entities). 100 ≈ today; 10 000 ≈ far past any realistic personal or agent-maintained wiki.
+
+Scope: targets the pure-Go searcher only. The `rg` / `git grep` accelerators are out of scope for these perf tests.
