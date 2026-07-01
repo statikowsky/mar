@@ -8,6 +8,8 @@ columns:
       tasks: []
     - name: Done
       tasks:
+        - T-SEARCH-BOX-ON-THE
+        - T-SORT-AND-FILTER-THE
         - T-ADD-UNIFIED-SEARCH-COMMAND
         - T-ADD-WIKILINK-LINT-AND
         - T-ADD-POSITIONAL-TASK-PLACEMENT

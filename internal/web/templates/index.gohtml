@@ -9,15 +9,27 @@
 </a>
 
 <h2>Contents</h2>
-<p class="doc-actions"><a class="docact primary" href="/doc/new">New document</a></p>
-<table class="toc">
-  <tr><th>Code</th><th style="width:50%">Document</th><th>Type</th><th>Updated</th><th></th></tr>
-  {{range .Docs}}
+<div class="toc-controls">
+  <a class="docact primary" href="/doc/new">New document</a>
+  <input type="search" id="doc-search" class="toc-search" placeholder="Search title or code…" aria-label="Search documents">
+  <label class="toc-filter">Type
+    <select id="doc-type-filter"><option value="">All</option></select>
+  </label>
+</div>
+<table class="toc" data-sortable>
   <tr>
+    <th class="sortable" data-dir="">Code</th>
+    <th class="sortable" style="width:50%">Document</th>
+    <th>Type</th>
+    <th class="sortable" data-dir="desc">Updated</th>
+    <th></th>
+  </tr>
+  {{range .Docs}}
+  <tr data-type="{{.Type}}">
     <td class="code">{{.Code}}</td>
     <td><a href="/doc/{{.Code}}">{{.Title}}</a></td>
     <td><span class="typetag {{.Type}}">{{.Type}}</span></td>
-    <td class="date">{{.Updated}}</td>
+    <td class="date" data-sort="{{.UpdatedAt}}">{{.Updated}}</td>
     <td class="actions"><button class="docact" data-code="{{.Code}}" data-action="archive">Archive</button></td>
   </tr>
   {{end}}
@@ -26,14 +38,20 @@
 {{if .Archived}}
 <details class="archived-section">
   <summary>Archived ({{len .Archived}})</summary>
-  <table class="toc">
-    <tr><th>Code</th><th style="width:50%">Document</th><th>Type</th><th>Updated</th><th></th></tr>
+  <table class="toc" data-sortable>
+    <tr>
+      <th class="sortable" data-dir="">Code</th>
+      <th class="sortable" style="width:50%">Document</th>
+      <th>Type</th>
+      <th class="sortable" data-dir="desc">Updated</th>
+      <th></th>
+    </tr>
     {{range .Archived}}
-    <tr class="archived">
+    <tr class="archived" data-type="{{.Type}}">
       <td class="code">{{.Code}}</td>
       <td><a href="/doc/{{.Code}}">{{.Title}}</a></td>
       <td><span class="typetag {{.Type}}">{{.Type}}</span></td>
-      <td class="date">{{.Updated}}</td>
+      <td class="date" data-sort="{{.UpdatedAt}}">{{.Updated}}</td>
       <td class="actions">
         <button class="docact" data-code="{{.Code}}" data-action="unarchive">Unarchive</button>
         <button class="docact danger" data-code="{{.Code}}" data-action="delete">Delete</button>
@@ -61,5 +79,55 @@ document.querySelectorAll("button.docact").forEach(function (btn) {
       .catch(function () { alert("Request failed"); });
   });
 });
+
+// Click a header to sort its column; click again to reverse. Date cells carry
+// the full timestamp in data-sort; others sort on visible text.
+function dataRows(table) {
+  return Array.from(table.rows).filter(function (r) { return !r.querySelector("th"); });
+}
+function cellValue(row, idx) {
+  const cell = row.cells[idx];
+  return cell.dataset.sort !== undefined ? cell.dataset.sort : cell.textContent.trim();
+}
+document.querySelectorAll("table[data-sortable]").forEach(function (table) {
+  const headers = Array.from(table.rows[0].cells);
+  headers.forEach(function (th, idx) {
+    if (!th.classList.contains("sortable")) return;
+    th.addEventListener("click", function () {
+      const dir = th.dataset.dir === "asc" ? "desc" : "asc";
+      headers.forEach(function (h) { h.dataset.dir = ""; });
+      th.dataset.dir = dir;
+      const sign = dir === "asc" ? 1 : -1;
+      const rows = dataRows(table);
+      rows.sort(function (a, b) {
+        return sign * cellValue(a, idx).localeCompare(
+          cellValue(b, idx), undefined, { numeric: true, sensitivity: "base" });
+      });
+      rows.forEach(function (r) { table.tBodies[0].appendChild(r); });
+    });
+  });
+});
+
+// Live filter rows by type and by a title/code search, combined (AND),
+// across all tables.
+const typeFilter = document.getElementById("doc-type-filter");
+const search = document.getElementById("doc-search");
+const typed = Array.from(document.querySelectorAll("tr[data-type]"));
+Array.from(new Set(typed.map(function (r) { return r.dataset.type; })))
+  .filter(Boolean).sort().forEach(function (t) {
+    typeFilter.add(new Option(t, t));
+  });
+function applyFilters() {
+  const want = typeFilter.value;
+  const q = search.value.trim().toLowerCase();
+  typed.forEach(function (r) {
+    const matchType = !want || r.dataset.type === want;
+    const hay = (r.cells[0].textContent + " " + r.cells[1].textContent).toLowerCase();
+    const matchText = !q || hay.indexOf(q) !== -1;
+    r.style.display = matchType && matchText ? "" : "none";
+  });
+}
+typeFilter.addEventListener("change", applyFilters);
+search.addEventListener("input", applyFilters);
 </script>
 {{end}}
