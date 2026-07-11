@@ -11,6 +11,14 @@
   <button class="docact" data-code="{{.Doc.Code}}" data-action="archive">Archive</button>
   {{end}}
 </p>
+<div class="doc-layout">
+<aside class="doc-outline" hidden>
+  <nav aria-label="Table of contents">
+    <p class="doc-outline-title">On this page</p>
+    <ol class="doc-outline-list"></ol>
+  </nav>
+</aside>
+<main class="doc-content">
 <div class="rendered-body">{{.Body}}</div>
 {{if ne .Doc.Status "archived"}}
 <form class="inline-editor" data-code="{{.Doc.Code}}" hidden>
@@ -42,6 +50,8 @@
   {{range .Backlinks}}<li><a href="/{{if eq .Kind "task"}}task{{else}}doc{{end}}/{{.Code}}">{{.Code}}</a> — {{.Title}}</li>{{end}}
 </ul>
 {{end}}
+</main>
+</div>
 
 <script>
 // Archive / unarchive / delete actions.
@@ -63,6 +73,66 @@ document.querySelectorAll("button.docact").forEach(function (btn) {
   });
 });
 
+// Reading outline: derive links from the rendered document so the navigation
+// always matches the heading ids emitted by the Markdown renderer.
+(function () {
+  const layout = document.querySelector(".doc-layout");
+  const outline = document.querySelector(".doc-outline");
+  const list = document.querySelector(".doc-outline-list");
+  const body = document.querySelector(".doc-content > .rendered-body:not(.edit-preview)");
+  if (!layout || !outline || !list || !body) return;
+
+  const headings = Array.from(body.querySelectorAll("h2[id], h3[id]"));
+  if (!headings.length) return;
+
+  headings.forEach(function (heading) {
+    const item = document.createElement("li");
+    const link = document.createElement("a");
+    item.className = "level-" + heading.tagName.toLowerCase();
+    link.href = "#" + encodeURIComponent(heading.id);
+    link.textContent = heading.textContent;
+    item.appendChild(link);
+    list.appendChild(item);
+  });
+  layout.classList.add("has-outline");
+  outline.hidden = false;
+
+  const links = Array.from(list.querySelectorAll("a"));
+  let scheduled = false;
+  function updateCurrent() {
+    scheduled = false;
+    const marker = Math.min(160, window.innerHeight * 0.25);
+    let current = 0;
+    headings.forEach(function (heading, index) {
+      if (heading.getBoundingClientRect().top <= marker) current = index;
+    });
+    if (window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 2) {
+      current = headings.length - 1;
+    }
+    links.forEach(function (link, index) {
+      if (index === current) link.setAttribute("aria-current", "location");
+      else link.removeAttribute("aria-current");
+    });
+    const outlineBox = outline.getBoundingClientRect();
+    const currentBox = links[current].getBoundingClientRect();
+    if (currentBox.top < outlineBox.top) {
+      outline.scrollTop -= outlineBox.top - currentBox.top;
+    } else if (currentBox.bottom > outlineBox.bottom) {
+      outline.scrollTop += currentBox.bottom - outlineBox.bottom;
+    }
+  }
+  function scheduleUpdate() {
+    if (scheduled) return;
+    scheduled = true;
+    window.requestAnimationFrame(updateCurrent);
+  }
+  window.addEventListener("scroll", scheduleUpdate, { passive: true });
+  window.addEventListener("resize", scheduleUpdate);
+  window.addEventListener("hashchange", scheduleUpdate);
+  window.addEventListener("load", scheduleUpdate);
+  updateCurrent();
+})();
+
 // Inline editor: Edit reveals the split-pane form; Save persists and reloads.
 (function () {
   const form = document.querySelector("form.inline-editor");
@@ -72,12 +142,14 @@ document.querySelectorAll("button.docact").forEach(function (btn) {
   const cancelBtn = form.querySelector("button[data-action='cancel']");
   const actions = document.querySelector(".doc-actions");
   const readView = document.querySelector(".rendered-body:not(.edit-preview)");
+  const outline = document.querySelector(".doc-outline");
   let dirty = false;
 
   function show(on) {
     form.hidden = !on;
     if (readView) readView.hidden = on;
     if (actions) actions.hidden = on;
+    if (outline) outline.hidden = on || !outline.querySelector("a");
     if (on) { dirty = false; form.querySelector(".edit-body").focus(); }
   }
 

@@ -153,6 +153,7 @@ func (srv *Server) handleDoc(w http.ResponseWriter, r *http.Request) {
 	}
 	srv.render(w, r, "doc", map[string]any{
 		"Title":     d.Title,
+		"BodyClass": "doc-page",
 		"Doc":       d,
 		"Updated":   shortDate(d.UpdatedAt),
 		"Body":      template.HTML(bodyHTML),

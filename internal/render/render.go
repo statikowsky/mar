@@ -23,6 +23,7 @@ var md = goldmark.New(
 		),
 	),
 	goldmark.WithParserOptions(
+		parser.WithAutoHeadingID(),
 		parser.WithASTTransformers(util.Prioritized(alertTransformer{}, 100)),
 		// Before the standard link parser (priority 200) so [[CODE]] wins over [text](url).
 		parser.WithInlineParsers(util.Prioritized(wikiLinkParser{}, 100)),

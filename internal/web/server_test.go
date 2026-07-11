@@ -415,6 +415,27 @@ func TestDocPageRenders(t *testing.T) {
 	}
 }
 
+func TestDocPageIncludesReadingOutline(t *testing.T) {
+	srv, s := newTestServer(t)
+	s.CreateDoc("auth", "Auth", "design", "## Overview\n\n### Details")
+	code, body := get(t, srv.URL+"/doc/DOC-AUTH")
+	if code != 200 {
+		t.Fatalf("status = %d", code)
+	}
+	for _, want := range []string{
+		`<body class="doc-page">`,
+		`class="doc-layout"`,
+		`class="doc-outline"`,
+		`aria-label="Table of contents"`,
+		`class="doc-outline-list"`,
+		`id="overview"`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Errorf("doc page missing %q:\n%s", want, body)
+		}
+	}
+}
+
 func TestDocPageShowsCopyableCodeChip(t *testing.T) {
 	srv, s := newTestServer(t)
 	s.CreateDoc("auth", "Auth", "design", "")

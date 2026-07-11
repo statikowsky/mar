@@ -18,6 +18,22 @@ func TestRenderHeadingAndParagraph(t *testing.T) {
 	}
 }
 
+func TestRenderHeadingsHaveStableUniqueIDs(t *testing.T) {
+	html, err := RenderMarkdown("## Overview\n\n### Details\n\n## Overview")
+	if err != nil {
+		t.Fatalf("RenderMarkdown: %v", err)
+	}
+	for _, want := range []string{
+		`<h2 id="overview">Overview</h2>`,
+		`<h3 id="details">Details</h3>`,
+		`<h2 id="overview-1">Overview</h2>`,
+	} {
+		if !strings.Contains(html, want) {
+			t.Errorf("rendered headings missing %q: %s", want, html)
+		}
+	}
+}
+
 func TestRenderEscapesRawHTML(t *testing.T) {
 	html, err := RenderMarkdown("<script>alert(1)</script>")
 	if err != nil {

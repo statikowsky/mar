@@ -8,6 +8,7 @@ columns:
       tasks: []
     - name: Done
       tasks:
+        - T-ADD-DOCUMENT-TABLE-OF
         - T-SEARCH-BOX-ON-THE
         - T-SORT-AND-FILTER-THE
         - T-ADD-UNIFIED-SEARCH-COMMAND
