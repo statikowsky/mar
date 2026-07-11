@@ -9,6 +9,7 @@ columns:
       tasks: []
     - name: Done
       tasks:
+        - T-SPECIFY-SCRATCHPAD-WHITEBOARD
         - T-RELEASE-MAR-V0-4
         - T-ADD-DOCUMENT-TABLE-OF
         - T-SEARCH-BOX-ON-THE
