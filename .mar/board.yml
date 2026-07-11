@@ -4,10 +4,12 @@ columns:
         - T-MAKE-STORE-MUTATIONS-TRANSACTIONAL
         - T-ADD-DOC-TOUCH-AND
         - T-NORMALIZE-EXPLICIT-DATE-TIMESTAMP
+        - T-UPGRADE-GITHUB-ACTIONS-OFF
     - name: In progress
       tasks: []
     - name: Done
       tasks:
+        - T-RELEASE-MAR-V0-4
         - T-ADD-DOCUMENT-TABLE-OF
         - T-SEARCH-BOX-ON-THE
         - T-SORT-AND-FILTER-THE
