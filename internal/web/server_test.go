@@ -94,6 +94,96 @@ func postJSON(t *testing.T, url, body string) (int, string) {
 	return resp.StatusCode, b.String()
 }
 
+func requestJSON(t *testing.T, method, url, body string) (int, string) {
+	t.Helper()
+	req, err := http.NewRequest(method, url, strings.NewReader(body))
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("%s %s: %v", method, url, err)
+	}
+	defer resp.Body.Close()
+	raw, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return resp.StatusCode, string(raw)
+}
+
+func TestScratchpadPageAndIndexLink(t *testing.T) {
+	srv, _ := newTestServer(t)
+	code, body := get(t, srv.URL+"/scratchpad")
+	if code != http.StatusOK {
+		t.Fatalf("status = %d", code)
+	}
+	for _, want := range []string{`<body class="scratch-page">`, `id="scratch-surface"`, `window.SCRATCHPAD_STATE`, `aria-label="Scratchpad notes"`} {
+		if !strings.Contains(body, want) {
+			t.Errorf("scratchpad page missing %q:\n%s", want, body)
+		}
+	}
+	_, index := get(t, srv.URL+"/")
+	if !strings.Contains(index, `href="/scratchpad"`) {
+		t.Errorf("index missing scratchpad link:\n%s", index)
+	}
+}
+
+func TestScratchpadCreateAndSaveRoutes(t *testing.T) {
+	srv, _ := newTestServer(t)
+	code, body := postJSON(t, srv.URL+"/scratchpad/note", `{"text":"Idea","x":20,"y":30,"color":"blue"}`)
+	if code != http.StatusCreated {
+		t.Fatalf("create status = %d: %s", code, body)
+	}
+	var created store.Scratchpad
+	if err := json.Unmarshal([]byte(body), &created); err != nil {
+		t.Fatal(err)
+	}
+	if created.Revision != 1 || len(created.Notes) != 1 || created.Notes[0].ID != "S-1" {
+		t.Fatalf("created = %+v", created)
+	}
+	created.Notes[0].Text = "Changed"
+	payload, _ := json.Marshal(map[string]any{"revision": created.Revision, "notes": created.Notes})
+	code, body = requestJSON(t, http.MethodPut, srv.URL+"/scratchpad", string(payload))
+	if code != http.StatusOK {
+		t.Fatalf("save status = %d: %s", code, body)
+	}
+	code, _ = requestJSON(t, http.MethodPut, srv.URL+"/scratchpad", string(payload))
+	if code != http.StatusConflict {
+		t.Fatalf("stale save status = %d, want 409", code)
+	}
+}
+
+func TestScratchpadPromotesNoteToTaskAndDocument(t *testing.T) {
+	srv, s := newTestServer(t)
+	note, err := s.CreateScratchNote("Ship scratchpad\nDetailed body", 0, 0, 260, "yellow")
+	if err != nil {
+		t.Fatal(err)
+	}
+	code, body := postJSON(t, srv.URL+"/scratchpad/note/"+note.ID+"/promote", `{"kind":"task"}`)
+	if code != http.StatusCreated {
+		t.Fatalf("task promotion status = %d: %s", code, body)
+	}
+	pad, _ := s.Scratchpad()
+	if len(pad.Notes) != 1 || !strings.HasPrefix(pad.Notes[0].Link, "T-") {
+		t.Fatalf("task promotion link = %+v", pad.Notes)
+	}
+
+	note, err = s.CreateScratchNote("Scratch reference\nDocument body", 0, 0, 260, "neutral")
+	if err != nil {
+		t.Fatal(err)
+	}
+	code, body = postJSON(t, srv.URL+"/scratchpad/note/"+note.ID+"/promote", `{"kind":"doc","code":"SCRATCH-REF","type":"reference"}`)
+	if code != http.StatusCreated {
+		t.Fatalf("doc promotion status = %d: %s", code, body)
+	}
+	doc, err := s.GetDoc("DOC-SCRATCH-REF")
+	if err != nil || doc.Title != "Scratch reference" || doc.Body != "Document body\n" {
+		t.Fatalf("promoted doc = %+v, err = %v", doc, err)
+	}
+}
+
 func TestStaticCSSLoadsVendoredInter(t *testing.T) {
 	srv, _ := newTestServer(t)
 	code, css := get(t, srv.URL+"/static/style.css")

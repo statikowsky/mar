@@ -22,7 +22,7 @@ var ErrHandled = errors.New("error already reported")
 func newRootCmd() *cobra.Command {
 	root := &cobra.Command{
 		Use:           "mar",
-		Short:         "mar — a local Markdown documentation repository and kanban board",
+		Short:         "mar — local Markdown docs, kanban tasks, and a spatial scratchpad",
 		Version:       version.Display(),
 		SilenceUsage:  true,
 		SilenceErrors: true,
@@ -33,6 +33,7 @@ func newRootCmd() *cobra.Command {
 	root.AddCommand(newTaskCmd(), newBoardCmd(), newColumnCmd())
 	root.AddCommand(newServeCmd(), newVersionCmd(), newGuideCmd())
 	root.AddCommand(newBacklinkCmd(), newSearchCmd())
+	root.AddCommand(newScratchCmd())
 	return root
 }
 

@@ -1,0 +1,528 @@
+{{define "content"}}
+<header class="scratch-head">
+  <div>
+    <p class="subtitle"><a href="/">&larr; back to docs</a></p>
+    <h1>Scratchpad</h1>
+  </div>
+  <div class="scratch-toolbar" role="toolbar" aria-label="Scratchpad tools">
+    <button type="button" class="scratch-action primary" data-action="add">Add note</button>
+    <button type="button" class="scratch-action" data-action="view">List view</button>
+    <button type="button" class="scratch-action" data-action="undo" disabled>Undo</button>
+    <button type="button" class="scratch-action" data-action="redo" disabled>Redo</button>
+    <button type="button" class="scratch-action" data-action="duplicate" disabled>Duplicate</button>
+    <button type="button" class="scratch-action danger" data-action="delete" disabled>Delete</button>
+    <button type="button" class="scratch-action" data-action="zoom-out" aria-label="Zoom out">−</button>
+    <button type="button" class="scratch-action" data-action="zoom-reset">100%</button>
+    <button type="button" class="scratch-action" data-action="zoom-in" aria-label="Zoom in">+</button>
+    <button type="button" class="scratch-action" data-action="fit">Fit</button>
+    <span id="scratch-save-state" role="status" aria-live="polite">Saved</span>
+  </div>
+</header>
+<div class="scratch-conflict" role="alert" hidden>
+  Scratchpad changed elsewhere.
+  <button type="button" data-action="reload">Reload remote</button>
+  <button type="button" data-action="overwrite">Keep my version</button>
+</div>
+<main class="scratch-workspace">
+  <div id="scratch-surface" tabindex="0" aria-label="Scratchpad notes">
+    <div id="scratch-plane"></div>
+  </div>
+  <section id="scratch-list" aria-label="Scratchpad notes list" hidden>
+    <div class="scratch-list-items"></div>
+  </section>
+</main>
+<div id="scratch-live" class="sr-only" aria-live="polite"></div>
+<script>window.SCRATCHPAD_STATE = {{.ScratchpadJSON}};</script>
+<script>
+(function () {
+  const COLORS = ["neutral", "blue", "green", "yellow", "red", "purple"];
+  const surface = document.getElementById("scratch-surface");
+  const plane = document.getElementById("scratch-plane");
+  const list = document.getElementById("scratch-list");
+  const listItems = list.querySelector(".scratch-list-items");
+  const saveState = document.getElementById("scratch-save-state");
+  const live = document.getElementById("scratch-live");
+  const conflict = document.querySelector(".scratch-conflict");
+  let pad = window.SCRATCHPAD_STATE;
+  let selected = new Set();
+  let editing = null;
+  let saveTimer = null;
+  let savePending = false;
+  let saving = false;
+  let savePromise = null;
+  let changeSerial = 0;
+  let conflicted = false;
+  let history = [];
+  let future = [];
+  let listMode = window.matchMedia && window.matchMedia("(max-width: 600px)").matches;
+  let spaceDown = false;
+  let gesture = null;
+  let lastNoteClick = null;
+  let view = loadView();
+
+  function loadView() {
+    try {
+      const value = JSON.parse(localStorage.getItem("mar-scratch-view") || "null");
+      if (value && Number.isFinite(value.x) && Number.isFinite(value.y) && Number.isFinite(value.scale)) return value;
+    } catch (e) { /* ignore */ }
+    return { x: 80, y: 60, scale: 1 };
+  }
+  function saveView() {
+    try { localStorage.setItem("mar-scratch-view", JSON.stringify(view)); } catch (e) { /* ignore */ }
+  }
+  function clampScale(value) { return Math.max(0.25, Math.min(2.5, value)); }
+  function screenToWorld(clientX, clientY) {
+    const box = surface.getBoundingClientRect();
+    return { x: Math.round((clientX - box.left - view.x) / view.scale), y: Math.round((clientY - box.top - view.y) / view.scale) };
+  }
+  function noteByID(id) { return pad.notes.find(function (note) { return note.id === id; }); }
+  function cloneNotes() { return JSON.parse(JSON.stringify(pad.notes)); }
+  function checkpoint() {
+    history.push(cloneNotes());
+    if (history.length > 50) history.shift();
+    future = [];
+    updateToolbar();
+  }
+  function announce(message) {
+    live.textContent = "";
+    setTimeout(function () { live.textContent = message; }, 10);
+  }
+  function escapeHTML(value) {
+    const span = document.createElement("span");
+    span.textContent = value;
+    return span.innerHTML;
+  }
+  function linkText(text) {
+    return escapeHTML(text)
+      .replace(/\bhttps?:\/\/[^\s&lt;&]+/g, function (url) { return '<a href="' + url + '" target="_blank" rel="noreferrer">' + url + "</a>"; })
+      .replace(/\[\[((?:DOC-|T-)[A-Z0-9-]+)\]\]/g, function (_, code) {
+        const kind = code.indexOf("T-") === 0 ? "task" : "doc";
+        return '<a href="/' + kind + "/" + code + '">' + code + "</a>";
+      });
+  }
+  function render() {
+    plane.style.transform = "translate(" + view.x + "px," + view.y + "px) scale(" + view.scale + ")";
+    plane.innerHTML = "";
+    pad.notes.slice().sort(function (a, b) { return a.z - b.z; }).forEach(function (note) {
+      const el = document.createElement("article");
+      el.className = "scratch-note color-" + note.color + (selected.has(note.id) ? " selected" : "");
+      el.dataset.id = note.id;
+      el.tabIndex = 0;
+      el.setAttribute("aria-label", note.id + ": " + note.text);
+      el.setAttribute("aria-selected", selected.has(note.id) ? "true" : "false");
+      el.style.left = note.x + "px";
+      el.style.top = note.y + "px";
+      el.style.width = note.width + "px";
+      el.style.zIndex = note.z;
+      const meta = document.createElement("div");
+      meta.className = "scratch-note-meta";
+      meta.innerHTML = '<span class="scratch-note-id">' + note.id + "</span>" +
+        (note.link ? '<a href="/' + (note.link.indexOf("T-") === 0 ? "task" : "doc") + "/" + note.link + '">' + note.link + "</a>" : "");
+      el.appendChild(meta);
+      if (editing === note.id) {
+        const editor = document.createElement("textarea");
+        editor.className = "scratch-note-editor";
+        editor.value = note.text;
+        editor.setAttribute("aria-label", "Edit " + note.id);
+        el.appendChild(editor);
+      } else {
+        const text = document.createElement("div");
+        text.className = "scratch-note-text";
+        text.innerHTML = linkText(note.text);
+        el.appendChild(text);
+      }
+      const actions = document.createElement("div");
+      actions.className = "scratch-note-actions";
+      const colors = COLORS.map(function (color) { return '<option value="' + color + '"' + (note.color === color ? " selected" : "") + ">" + color + "</option>"; }).join("");
+      actions.innerHTML = '<select data-note-action="color" aria-label="Color for ' + note.id + '">' + colors + "</select>" +
+        '<button type="button" data-note-action="task">Task</button><button type="button" data-note-action="doc">Doc</button>';
+      el.appendChild(actions);
+      const resize = document.createElement("span");
+      resize.className = "scratch-resize";
+      resize.dataset.noteAction = "resize";
+      resize.setAttribute("aria-hidden", "true");
+      el.appendChild(resize);
+      plane.appendChild(el);
+    });
+    renderList();
+    updateToolbar();
+    if (editing) {
+      const editor = plane.querySelector('[data-id="' + editing + '"] textarea');
+      if (editor) { editor.focus(); editor.select(); }
+    }
+  }
+  function renderList() {
+    listItems.innerHTML = "";
+    pad.notes.slice().sort(function (a, b) { return a.created_at.localeCompare(b.created_at); }).forEach(function (note) {
+      const row = document.createElement("article");
+      row.className = "scratch-list-row color-" + note.color;
+      row.dataset.id = note.id;
+      const colors = COLORS.map(function (color) { return '<option value="' + color + '"' + (note.color === color ? " selected" : "") + ">" + color + "</option>"; }).join("");
+      row.innerHTML = '<div><strong>' + note.id + "</strong>" + (note.link ? " · " + note.link : "") + '</div><div class="scratch-list-text">' + linkText(note.text) + "</div>" +
+        '<div><button type="button" data-list-action="edit">Edit</button><select data-list-action="color" aria-label="Color for ' + note.id + '">' + colors + '</select><button type="button" data-list-action="duplicate">Duplicate</button><button type="button" data-list-action="task">Task</button><button type="button" data-list-action="doc">Doc</button><button type="button" data-list-action="delete">Delete</button></div>';
+      listItems.appendChild(row);
+    });
+    if (!pad.notes.length) listItems.innerHTML = '<p class="scratch-empty">Double-click the canvas or choose Add note to capture an idea.</p>';
+  }
+  function updateToolbar() {
+    document.querySelector('[data-action="undo"]').disabled = !history.length;
+    document.querySelector('[data-action="redo"]').disabled = !future.length;
+    document.querySelector('[data-action="duplicate"]').disabled = !selected.size;
+    document.querySelector('[data-action="delete"]').disabled = !selected.size;
+    document.querySelector('[data-action="zoom-reset"]').textContent = Math.round(view.scale * 100) + "%";
+  }
+  function syncSelection() {
+    plane.querySelectorAll(".scratch-note").forEach(function (el) {
+      const on = selected.has(el.dataset.id);
+      el.classList.toggle("selected", on);
+      el.setAttribute("aria-selected", on ? "true" : "false");
+    });
+    updateToolbar();
+  }
+  async function createNote(x, y, text) {
+    if (!(await flushSaves())) return null;
+    checkpoint();
+    setSaveStatus("Saving…");
+    const resp = await fetch("/scratchpad/note", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: text || "New idea", x: x, y: y, color: "neutral" }) });
+    if (!resp.ok) throw new Error(await resp.text());
+    pad = await resp.json();
+    const note = pad.notes[pad.notes.length - 1];
+    selected = new Set([note.id]);
+    editing = note.id;
+    setSaveStatus("Saved");
+    render();
+    announce("Created " + note.id);
+    return note;
+  }
+  function setSaveStatus(text) { saveState.textContent = text; }
+  function scheduleSave() {
+    changeSerial++;
+    savePending = true;
+    setSaveStatus("Saving…");
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(saveNow, 250);
+  }
+  async function saveNow(force) {
+    if (saving) {
+      await savePromise;
+      if (savePending) return saveNow(force);
+      return !conflicted;
+    }
+    clearTimeout(saveTimer);
+    savePending = true;
+    saving = true;
+    const serial = changeSerial;
+    const notes = cloneNotes();
+    savePromise = (async function () {
+    try {
+      if (force) {
+        const remote = await fetch("/scratchpad/data", { cache: "no-store" }).then(function (r) { return r.json(); });
+        pad.revision = remote.revision;
+      }
+      const resp = await fetch("/scratchpad", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ revision: pad.revision, notes: notes }) });
+      if (resp.status === 409) {
+        conflicted = true;
+        conflict.hidden = false;
+        setSaveStatus("Conflict");
+        return false;
+      }
+      if (!resp.ok) throw new Error(await resp.text());
+      const saved = await resp.json();
+      if (serial === changeSerial) {
+        pad = saved;
+        savePending = false;
+      } else {
+        pad.revision = saved.revision;
+        savePending = true;
+        clearTimeout(saveTimer);
+        saveTimer = setTimeout(saveNow, 0);
+      }
+      conflicted = false;
+      conflict.hidden = true;
+      setSaveStatus(savePending ? "Saving…" : "Saved");
+      return true;
+    } catch (err) {
+      savePending = true;
+      setSaveStatus("Save failed");
+      announce("Scratchpad save failed");
+      return false;
+    } finally {
+      saving = false;
+    }
+    })();
+    return savePromise;
+  }
+  async function flushSaves() {
+    while (savePending) {
+      if (!(await saveNow())) return false;
+    }
+    return true;
+  }
+  function finishEdit(commit) {
+    if (!editing) return;
+    const id = editing;
+    const note = noteByID(id);
+    const editor = plane.querySelector('[data-id="' + id + '"] textarea');
+    editing = null;
+    if (!editor || !commit) { render(); return; }
+    const text = editor.value.trim();
+    if (!text) {
+      checkpoint();
+      pad.notes = pad.notes.filter(function (item) { return item.id !== id; });
+      selected.delete(id);
+      scheduleSave();
+      announce("Deleted empty " + id);
+    } else if (text !== note.text) {
+      checkpoint();
+      note.text = text;
+      scheduleSave();
+    }
+    render();
+  }
+  function startEdit(id) {
+    if (editing && editing !== id) finishEdit(true);
+    editing = id;
+    selected = new Set([id]);
+    render();
+  }
+  function deleteSelected() {
+    if (!selected.size) return;
+    checkpoint();
+    const count = selected.size;
+    pad.notes = pad.notes.filter(function (note) { return !selected.has(note.id); });
+    selected.clear();
+    editing = null;
+    scheduleSave();
+    render();
+    announce("Deleted " + count + (count === 1 ? " note" : " notes"));
+  }
+  async function duplicateSelected() {
+    if (!(await flushSaves())) return;
+    const source = pad.notes.filter(function (note) { return selected.has(note.id); });
+    if (!source.length) return;
+    checkpoint();
+    selected.clear();
+    for (const note of source) {
+      try {
+        const resp = await fetch("/scratchpad/note", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: note.text, x: note.x + 28, y: note.y + 28, width: note.width, color: note.color }) });
+        if (!resp.ok) throw new Error(await resp.text());
+        pad = await resp.json();
+        selected.add(pad.notes[pad.notes.length - 1].id);
+      } catch (e) { announce("Could not duplicate note"); break; }
+    }
+    render();
+  }
+  function undo() {
+    if (!history.length) return;
+    future.push(cloneNotes());
+    pad.notes = history.pop();
+    selected.clear(); editing = null;
+    scheduleSave(); render();
+  }
+  function redo() {
+    if (!future.length) return;
+    history.push(cloneNotes());
+    pad.notes = future.pop();
+    selected.clear(); editing = null;
+    scheduleSave(); render();
+  }
+  function setZoom(scale, clientX, clientY) {
+    scale = clampScale(scale);
+    const box = surface.getBoundingClientRect();
+    const sx = clientX == null ? box.width / 2 : clientX - box.left;
+    const sy = clientY == null ? box.height / 2 : clientY - box.top;
+    const wx = (sx - view.x) / view.scale;
+    const wy = (sy - view.y) / view.scale;
+    view.x = sx - wx * scale;
+    view.y = sy - wy * scale;
+    view.scale = scale;
+    saveView(); render();
+  }
+  function fitAll() {
+    if (!pad.notes.length) { view = { x: 80, y: 60, scale: 1 }; saveView(); render(); return; }
+    const minX = Math.min.apply(null, pad.notes.map(function (n) { return n.x; }));
+    const minY = Math.min.apply(null, pad.notes.map(function (n) { return n.y; }));
+    const maxX = Math.max.apply(null, pad.notes.map(function (n) { return n.x + n.width; }));
+    const maxY = Math.max.apply(null, pad.notes.map(function (n) { return n.y + 180; }));
+    const box = surface.getBoundingClientRect();
+    const scale = clampScale(Math.min((box.width - 80) / Math.max(1, maxX - minX), (box.height - 80) / Math.max(1, maxY - minY)));
+    view = { scale: scale, x: (box.width - (maxX - minX) * scale) / 2 - minX * scale, y: (box.height - (maxY - minY) * scale) / 2 - minY * scale };
+    saveView(); render();
+  }
+  async function promote(id, kind) {
+    if (!(await flushSaves())) return;
+    const note = noteByID(id);
+    if (!note) return;
+    const payload = { kind: kind };
+    if (kind === "doc") {
+      const first = note.text.split("\n")[0].toUpperCase().replace(/[^A-Z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+      payload.code = prompt("Document code", first);
+      if (!payload.code) return;
+      payload.type = prompt("Document type: design, analysis, plan, report, board, reference, tooling", "reference");
+      if (!payload.type) return;
+    }
+    const resp = await fetch("/scratchpad/note/" + encodeURIComponent(id) + "/promote", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+    if (!resp.ok) { announce((await resp.text()).trim() || "Promotion failed"); return; }
+    const data = await resp.json();
+    note.link = data.code;
+    const remote = await fetch("/scratchpad/data", { cache: "no-store" }).then(function (r) { return r.json(); });
+    pad = remote;
+    render(); announce("Created " + data.code);
+  }
+
+  surface.addEventListener("dblclick", function (e) {
+    if (e.target.closest(".scratch-note")) return;
+    const point = screenToWorld(e.clientX, e.clientY);
+    createNote(point.x, point.y).catch(function () { announce("Could not create note"); });
+  });
+  surface.addEventListener("pointerdown", function (e) {
+    const noteEl = e.target.closest(".scratch-note");
+    const resize = e.target.closest('[data-note-action="resize"]');
+    if (noteEl && !spaceDown && !e.target.closest("textarea,button,select,a")) {
+      const id = noteEl.dataset.id;
+      if (!e.shiftKey && !selected.has(id)) selected = new Set([id]);
+      else if (e.shiftKey) { if (selected.has(id)) selected.delete(id); else selected.add(id); }
+      syncSelection();
+      if (e.button !== 0) return;
+      checkpoint();
+      noteByID(id).z = Math.max.apply(null, pad.notes.map(function (note) { return note.z; }).concat([0])) + 1;
+      noteEl.style.zIndex = noteByID(id).z;
+      const starts = {};
+      selected.forEach(function (selectedID) { const n = noteByID(selectedID); starts[selectedID] = { x: n.x, y: n.y }; });
+      gesture = { type: resize ? "resize" : "move", id: id, startX: e.clientX, startY: e.clientY, starts: starts, width: noteByID(id).width };
+      surface.setPointerCapture(e.pointerId);
+      e.preventDefault();
+      return;
+    }
+    if (e.target === surface || e.target === plane || spaceDown) {
+      if (!e.shiftKey) selected.clear();
+      gesture = { type: e.shiftKey ? "marquee" : "pan", startX: e.clientX, startY: e.clientY, viewX: view.x, viewY: view.y };
+      if (gesture.type === "marquee") {
+        const box = document.createElement("div"); box.className = "scratch-marquee"; surface.appendChild(box); gesture.box = box;
+      }
+      surface.setPointerCapture(e.pointerId);
+      syncSelection();
+    }
+  });
+  surface.addEventListener("pointermove", function (e) {
+    if (!gesture) return;
+    const dx = e.clientX - gesture.startX;
+    const dy = e.clientY - gesture.startY;
+    if (gesture.type === "pan") {
+      view.x = gesture.viewX + dx; view.y = gesture.viewY + dy; plane.style.transform = "translate(" + view.x + "px," + view.y + "px) scale(" + view.scale + ")";
+    } else if (gesture.type === "move") {
+      selected.forEach(function (id) { const note = noteByID(id); note.x = Math.round(gesture.starts[id].x + dx / view.scale); note.y = Math.round(gesture.starts[id].y + dy / view.scale); });
+      render();
+    } else if (gesture.type === "resize") {
+      noteByID(gesture.id).width = Math.max(160, Math.min(800, Math.round(gesture.width + dx / view.scale)));
+      render();
+    } else if (gesture.type === "marquee") {
+      const box = surface.getBoundingClientRect();
+      const left = Math.min(gesture.startX, e.clientX) - box.left;
+      const top = Math.min(gesture.startY, e.clientY) - box.top;
+      gesture.box.style.cssText = "left:" + left + "px;top:" + top + "px;width:" + Math.abs(dx) + "px;height:" + Math.abs(dy) + "px";
+    }
+  });
+  surface.addEventListener("pointerup", function (e) {
+    if (!gesture) return;
+    const finished = gesture;
+    if (gesture.type === "move" || gesture.type === "resize") scheduleSave();
+    if (gesture.type === "pan") saveView();
+    if (gesture.type === "marquee") {
+      const rect = gesture.box.getBoundingClientRect();
+      plane.querySelectorAll(".scratch-note").forEach(function (el) {
+        const box = el.getBoundingClientRect();
+        if (box.right >= rect.left && box.left <= rect.right && box.bottom >= rect.top && box.top <= rect.bottom) selected.add(el.dataset.id);
+      });
+      gesture.box.remove(); render();
+    }
+    gesture = null;
+    try { surface.releasePointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+    if (finished.type === "move" && Math.abs(e.clientX - finished.startX) < 4 && Math.abs(e.clientY - finished.startY) < 4) {
+      const now = Date.now();
+      if (lastNoteClick && lastNoteClick.id === finished.id && now - lastNoteClick.time < 400) startEdit(finished.id);
+      lastNoteClick = { id: finished.id, time: now };
+    }
+  });
+  surface.addEventListener("wheel", function (e) {
+    e.preventDefault();
+    if (e.ctrlKey || e.metaKey) setZoom(view.scale * Math.exp(-e.deltaY * 0.002), e.clientX, e.clientY);
+    else { view.x -= e.deltaX; view.y -= e.deltaY; saveView(); render(); }
+  }, { passive: false });
+  plane.addEventListener("dblclick", function (e) { const note = e.target.closest(".scratch-note"); if (note) { e.stopPropagation(); startEdit(note.dataset.id); } });
+  plane.addEventListener("change", function (e) {
+    const noteEl = e.target.closest(".scratch-note"); if (!noteEl) return;
+    if (e.target.dataset.noteAction === "color") { checkpoint(); noteByID(noteEl.dataset.id).color = e.target.value; scheduleSave(); render(); }
+  });
+  plane.addEventListener("click", function (e) {
+    const action = e.target.dataset.noteAction; const noteEl = e.target.closest(".scratch-note"); if (!action || !noteEl) return;
+    if (action === "task" || action === "doc") promote(noteEl.dataset.id, action);
+  });
+  plane.addEventListener("keydown", function (e) {
+    if (!e.target.matches("textarea")) return;
+    if ((e.metaKey || e.ctrlKey) && e.key === "Enter") { e.preventDefault(); finishEdit(true); }
+    else if (e.key === "Escape") { e.preventDefault(); finishEdit(false); }
+  });
+  list.addEventListener("click", function (e) {
+    const row = e.target.closest(".scratch-list-row"); if (!row) return;
+    const action = e.target.dataset.listAction;
+    if (action === "edit") { const note = noteByID(row.dataset.id); const text = prompt("Edit " + note.id, note.text); if (text != null && text.trim() && text.trim() !== note.text) { checkpoint(); note.text = text.trim(); scheduleSave(); render(); } }
+    if (action === "duplicate") { selected = new Set([row.dataset.id]); duplicateSelected(); }
+    if (action === "delete") { selected = new Set([row.dataset.id]); deleteSelected(); }
+    if (action === "task" || action === "doc") promote(row.dataset.id, action);
+  });
+  list.addEventListener("change", function (e) {
+    const row = e.target.closest(".scratch-list-row");
+    if (!row || e.target.dataset.listAction !== "color") return;
+    checkpoint(); noteByID(row.dataset.id).color = e.target.value; scheduleSave(); render();
+  });
+  document.querySelector(".scratch-toolbar").addEventListener("click", function (e) {
+    const action = e.target.dataset.action; if (!action) return;
+    const box = surface.getBoundingClientRect();
+    if (action === "add") { const point = screenToWorld(box.left + box.width / 2, box.top + box.height / 2); createNote(point.x, point.y).catch(function () { announce("Could not create note"); }); }
+    if (action === "delete") deleteSelected();
+    if (action === "duplicate") duplicateSelected();
+    if (action === "undo") undo();
+    if (action === "redo") redo();
+    if (action === "zoom-in") setZoom(view.scale * 1.2);
+    if (action === "zoom-out") setZoom(view.scale / 1.2);
+    if (action === "zoom-reset") setZoom(1);
+    if (action === "fit") fitAll();
+    if (action === "view") { listMode = !listMode; surface.hidden = listMode; list.hidden = !listMode; e.target.textContent = listMode ? "Canvas view" : "List view"; renderList(); }
+  });
+  conflict.addEventListener("click", async function (e) {
+    if (e.target.dataset.action === "reload") { pad = await fetch("/scratchpad/data", { cache: "no-store" }).then(function (r) { return r.json(); }); conflicted = false; conflict.hidden = true; history = []; future = []; setSaveStatus("Saved"); render(); }
+    if (e.target.dataset.action === "overwrite") saveNow(true);
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.target.matches("textarea,input,select")) return;
+    if (e.code === "Space") spaceDown = true;
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "z") { e.preventDefault(); e.shiftKey ? redo() : undo(); }
+    else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "d") { e.preventDefault(); duplicateSelected(); }
+    else if (e.key === "Delete" || e.key === "Backspace") { e.preventDefault(); deleteSelected(); }
+    else if (e.key === "Enter" && selected.size === 1) startEdit(Array.from(selected)[0]);
+    else if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(e.key) && selected.size) {
+      e.preventDefault(); checkpoint(); const amount = e.shiftKey ? 10 : 1;
+      selected.forEach(function (id) { const note = noteByID(id); if (e.key === "ArrowLeft") note.x -= amount; if (e.key === "ArrowRight") note.x += amount; if (e.key === "ArrowUp") note.y -= amount; if (e.key === "ArrowDown") note.y += amount; }); scheduleSave(); render();
+    }
+  });
+  document.addEventListener("keyup", function (e) { if (e.code === "Space") spaceDown = false; });
+  window.addEventListener("beforeunload", function (e) { if (savePending || conflicted) { e.preventDefault(); e.returnValue = ""; } });
+  setInterval(async function () {
+    try {
+      const remote = await fetch("/scratchpad/data", { cache: "no-store" }).then(function (r) { return r.ok ? r.json() : null; });
+      if (!remote || remote.revision === pad.revision) return;
+      if (savePending) {
+        conflicted = true; conflict.hidden = false; setSaveStatus("Conflict");
+      } else {
+        pad = remote; selected.clear(); editing = null; history = []; future = []; render(); announce("Scratchpad updated externally");
+      }
+    } catch (e) { /* transient */ }
+  }, 2000);
+  surface.hidden = listMode;
+  list.hidden = !listMode;
+  document.querySelector('[data-action="view"]').textContent = listMode ? "Canvas view" : "List view";
+  render();
+})();
+</script>
+{{end}}

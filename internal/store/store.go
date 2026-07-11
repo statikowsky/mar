@@ -14,11 +14,12 @@ import (
 )
 
 const (
-	dirName   = ".mar"
-	boardName = "board.yml"
-	tasksDir  = "tasks"
-	docsDir   = "docs"
-	lockName  = ".lock"
+	dirName        = ".mar"
+	boardName      = "board.yml"
+	scratchpadName = "scratchpad.yml"
+	tasksDir       = "tasks"
+	docsDir        = "docs"
+	lockName       = ".lock"
 )
 
 var ErrNotFound = errors.New("not found")
@@ -365,6 +366,9 @@ func (s *Store) DataVersion() (int64, error) {
 		return nil
 	}
 	if err := add(boardName); err != nil {
+		return 0, fmt.Errorf("data version: %w", err)
+	}
+	if err := add(scratchpadName); err != nil {
 		return 0, fmt.Errorf("data version: %w", err)
 	}
 	for _, sub := range []string{tasksDir, docsDir} {

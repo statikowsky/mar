@@ -33,7 +33,7 @@ type Server struct {
 // pageNames are the content templates rendered into the layout. Each page file
 // defines "content"; parsing them separately (over a shared base) keeps those
 // definitions from colliding.
-var pageNames = []string{"index", "board", "doc", "task", "docnew", "tasknew"}
+var pageNames = []string{"index", "board", "doc", "task", "docnew", "tasknew", "scratchpad"}
 
 func NewServer(s store.Interface, repo, projectPath string) *Server {
 	base := template.Must(template.ParseFS(templateFS, "templates/*.gohtml"))
@@ -50,6 +50,11 @@ func (srv *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /", srv.handleIndex)
 	mux.HandleFunc("GET /board", srv.handleBoard)
+	mux.HandleFunc("GET /scratchpad", srv.handleScratchpad)
+	mux.HandleFunc("GET /scratchpad/data", srv.handleScratchpadData)
+	mux.HandleFunc("POST /scratchpad/note", srv.handleCreateScratchNote)
+	mux.HandleFunc("PUT /scratchpad", srv.handleSaveScratchpad)
+	mux.HandleFunc("POST /scratchpad/note/{id}/promote", srv.handlePromoteScratchNote)
 	mux.HandleFunc("GET /doc/new", srv.handleNewDocForm)
 	mux.HandleFunc("GET /doc/{code}", srv.handleDoc)
 	mux.HandleFunc("GET /task/new", srv.handleNewTaskForm)

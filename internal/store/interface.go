@@ -45,6 +45,11 @@ type Interface interface {
 	Backlinks(rawCode string) ([]Backlink, error)
 	Lint() ([]LintFinding, error)
 	Search(term string, opts SearchOpts) ([]SearchResult, error)
+	Scratchpad() (Scratchpad, error)
+	SaveScratchpad(expectedRevision int64, notes []ScratchNote) (Scratchpad, error)
+	CreateScratchNote(text string, x, y, width int, color string) (ScratchNote, error)
+	UpdateScratchNote(note ScratchNote) (ScratchNote, error)
+	DeleteScratchNote(id string) error
 }
 
 var _ Interface = (*Store)(nil)

@@ -1,6 +1,6 @@
 # mar
 
-mar is a local-first project memory: Markdown docs + kanban tasks per directory, usable from the browser, CLI, or coding agents.
+mar is a local-first project memory: Markdown docs, kanban tasks, and a spatial scratchpad per directory, usable from the browser, CLI, or coding agents.
 
 A per-directory repository of Markdown docs plus a kanban board. Browse it in
 your browser or drive it from the CLI; changes sync both ways. Data is plain
@@ -59,6 +59,19 @@ links (`--strict` to fail CI). `--body` takes a file path or `-` for stdin.
     mar doc link DOC-AUTH T-1                               # link doc <-> task
 
 See `mar guide` or `<command> --help` for the full command surface.
+
+## Scratchpad
+
+Open `/scratchpad` from the docs home page to capture and arrange ideas on a
+spatial canvas. Notes autosave to `.mar/scratchpad.yml`, support keyboard and
+list views, and can be promoted into tasks or documents. Agents can use the
+same data from the CLI:
+
+    mar scratch show
+    mar scratch add --text - --color yellow
+    mar scratch edit S-1 --text -
+    mar scratch promote S-1 --task
+    mar scratch rm S-1 --force
 
 ## License
 

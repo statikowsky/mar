@@ -292,6 +292,7 @@
 // SSE stream, each poll is a normal short request that never occupies one of
 // the browser's per-origin connection slots, so many tabs stay responsive.
 (function () {
+  if (document.body.classList.contains("scratch-page")) return;
   let known = null;
   async function poll() {
     try {

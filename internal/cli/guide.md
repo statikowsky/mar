@@ -1,9 +1,9 @@
 # mar — agent guide
 
-mar is a local, per-directory Markdown documentation repository plus a kanban
-board. You drive it from the CLI; humans browse it with `mar serve`. The store
+mar is a local, per-directory Markdown documentation repository with a kanban
+board and spatial scratchpad. You drive it from the CLI; humans browse it with `mar serve`. The store
 is plain text under `./.mar/` — `board.yml` (columns and card order),
-`tasks/*.md`, and `docs/*.md` with YAML frontmatter — discovered by walking up
+`tasks/*.md`, `docs/*.md`, and optional `scratchpad.yml` — discovered by walking up
 from the current directory (like `git`). Run commands from the project root;
 commit `.mar/` like any other source.
 
@@ -46,6 +46,9 @@ commit `.mar/` like any other source.
 - **Lint** finds dangling wiki-links: `mar doc lint` reports `[[...]]` targets
   that don't resolve. Dangling links are fine by default (link before the page
   exists); add `--strict` to fail CI on them.
+- **Scratchpad notes** are quick spatial ideas with stable `S-N` IDs. Arrange
+  them in the browser or use `mar scratch` for agent-friendly JSON. A note can
+  be promoted into a task or document without deleting the source idea.
 
 ## Commands
 
@@ -108,6 +111,14 @@ Each command takes `--json`. Single-letter aliases shown in parentheses.
     mar column move NAME (--before C | --after C)
     mar column rename OLD NEW
     mar column rm NAME [--force]
+
+### scratch
+
+    mar scratch show
+    mar scratch add --text - [--x N --y N --width N --color C]
+    mar scratch edit S-N [--text - --x N --y N --width N --color C --link CODE]
+    mar scratch promote S-N (--task | --doc --code CODE --type TYPE)
+    mar scratch rm S-N --force
 
 ### serve (s)
 
