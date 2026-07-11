@@ -354,6 +354,44 @@ body.doc-page { max-width: 1270px; }
   max-width: 1078px;
 }
 .doc-content { min-width: 0; }
+.doc-annotation-gutter {
+  align-self: stretch;
+  width: 12px;
+  min-height: 180px;
+  padding: 0;
+  border: 0;
+  border-left: 2px solid var(--line);
+  background: transparent;
+  cursor: crosshair;
+}
+.doc-annotation-gutter:hover, .doc-annotation-gutter:focus-visible { border-left-color: var(--accent); background: var(--accent-soft); outline: none; }
+.doc-layout { grid-template-columns: minmax(0, 820px) 12px; column-gap: 10px; }
+.doc-layout.has-outline { grid-template-columns: 210px minmax(0, 820px) 12px; }
+.doc-layout.has-notes { max-width: 1180px; grid-template-columns: minmax(0, 820px) 12px 320px; }
+.doc-layout.has-outline.has-notes { max-width: 1438px; grid-template-columns: 210px minmax(620px, 820px) 12px 320px; gap: 32px; }
+.doc-notes-rail {
+  align-self: start;
+  position: sticky;
+  top: 40px;
+  max-height: calc(100vh - 80px);
+  overflow-y: auto;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+}
+.doc-notes-rail[hidden] { display: none; }
+.doc-notes-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.doc-notes-head h2 { margin: 0; padding: 0; border: 0; font-size: 18px; }
+.doc-notes-list { display: grid; gap: 12px; margin-top: 12px; }
+.doc-note-card { padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); }
+.doc-note-card .scratch-note-editor { width: 100%; min-height: 92px; }
+.doc-note-card.color-blue { background: var(--accent-soft); }
+.doc-note-card.color-green { background: var(--good-soft); }
+.doc-note-card.color-yellow { background: var(--warn-soft); }
+.doc-note-card.color-red { background: var(--danger-soft); }
+.doc-note-card.color-purple { background: var(--tag-analysis-bg); }
+.doc-notes-empty { color: var(--muted); font-size: 13px; }
 .doc-outline {
   align-self: start;
   position: sticky;
@@ -396,6 +434,9 @@ body.doc-page { max-width: 1270px; }
 @media (max-width: 900px) {
   body.doc-page { max-width: 900px; }
   .doc-layout.has-outline { grid-template-columns: minmax(0, 1fr); gap: 0; max-width: 820px; }
+  .doc-layout, .doc-layout.has-notes, .doc-layout.has-outline.has-notes { grid-template-columns: minmax(0, 1fr); gap: 16px; max-width: 820px; }
+  .doc-annotation-gutter { width: 100%; min-height: 12px; border-left: 0; border-top: 2px solid var(--line); }
+  .doc-notes-rail { position: static; max-height: none; }
   .doc-outline {
     position: static;
     max-height: 240px;

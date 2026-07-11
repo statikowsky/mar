@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
@@ -14,7 +15,8 @@ import (
 )
 
 const (
-	scratchpadSchema        = 1
+	scratchpadSchema        = 2
+	legacyScratchpadSchema  = 1
 	defaultScratchNoteWidth = 260
 	minScratchNoteWidth     = 160
 	maxScratchNoteWidth     = 800
@@ -33,16 +35,27 @@ var (
 )
 
 type ScratchNote struct {
-	ID        string `json:"id" yaml:"id"`
-	Text      string `json:"text" yaml:"text"`
-	X         int    `json:"x" yaml:"x"`
-	Y         int    `json:"y" yaml:"y"`
-	Width     int    `json:"width" yaml:"width"`
-	Color     string `json:"color" yaml:"color"`
-	Z         int    `json:"z" yaml:"z"`
-	Link      string `json:"link,omitempty" yaml:"link,omitempty"`
-	CreatedAt string `json:"created_at" yaml:"created"`
-	UpdatedAt string `json:"updated_at" yaml:"updated"`
+	ID        string          `json:"id" yaml:"id"`
+	Text      string          `json:"text" yaml:"text"`
+	X         int             `json:"x" yaml:"x"`
+	Y         int             `json:"y" yaml:"y"`
+	Width     int             `json:"width" yaml:"width"`
+	Color     string          `json:"color" yaml:"color"`
+	Z         int             `json:"z" yaml:"z"`
+	Link      string          `json:"link,omitempty" yaml:"link,omitempty"`
+	Docs      []ScratchDocRef `json:"docs,omitempty" yaml:"docs,omitempty"`
+	CreatedAt string          `json:"created_at" yaml:"created"`
+	UpdatedAt string          `json:"updated_at" yaml:"updated"`
+}
+
+type ScratchDocRef struct {
+	Code   string         `json:"code" yaml:"code"`
+	Anchor *ScratchAnchor `json:"anchor,omitempty" yaml:"anchor,omitempty"`
+}
+
+type ScratchAnchor struct {
+	Block string `json:"block" yaml:"block"`
+	Quote string `json:"quote,omitempty" yaml:"quote,omitempty"`
 }
 
 type Scratchpad struct {
@@ -74,7 +87,7 @@ func (s *Store) readScratchpad() (scratchpadFile, error) {
 	if err := yaml.Unmarshal(raw, &f); err != nil {
 		return scratchpadFile{}, fmt.Errorf("parse scratchpad: %w", err)
 	}
-	if f.Schema != scratchpadSchema {
+	if f.Schema != legacyScratchpadSchema && f.Schema != scratchpadSchema {
 		return scratchpadFile{}, fmt.Errorf("unsupported scratchpad version %d", f.Schema)
 	}
 	if f.NextNote < 1 {
@@ -90,6 +103,7 @@ func (s *Store) readScratchpad() (scratchpadFile, error) {
 }
 
 func (s *Store) writeScratchpad(f scratchpadFile) error {
+	f.Schema = scratchpadSchema
 	raw, err := yaml.Marshal(f)
 	if err != nil {
 		return fmt.Errorf("marshal scratchpad: %w", err)
@@ -153,6 +167,7 @@ func (s *Store) SaveScratchpad(expectedRevision int64, notes []ScratchNote) (Scr
 			return err
 		}
 		f.Notes = append([]ScratchNote{}, notes...)
+		f.Schema = scratchpadSchema
 		f.NextNote = max(f.NextNote, nextScratchID(notes))
 		f.Revision++
 		if err := s.writeScratchpad(f); err != nil {
@@ -166,7 +181,7 @@ func (s *Store) SaveScratchpad(expectedRevision int64, notes []ScratchNote) (Scr
 
 func scratchNoteChanged(a, b ScratchNote) bool {
 	return a.Text != b.Text || a.X != b.X || a.Y != b.Y || a.Width != b.Width ||
-		a.Color != b.Color || a.Z != b.Z || a.Link != b.Link
+		a.Color != b.Color || a.Z != b.Z || a.Link != b.Link || !reflect.DeepEqual(a.Docs, b.Docs)
 }
 
 func (s *Store) CreateScratchNote(text string, x, y, width int, color string) (ScratchNote, error) {
@@ -302,6 +317,24 @@ func validateScratchNote(note ScratchNote) error {
 	}
 	if note.Link != "" && !scratchLinkRe.MatchString(note.Link) {
 		return fmt.Errorf("invalid scratch note link %q", note.Link)
+	}
+	seenDocs := map[string]bool{}
+	for i := range note.Docs {
+		note.Docs[i].Code = strings.ToUpper(strings.TrimSpace(note.Docs[i].Code))
+		if !strings.HasPrefix(note.Docs[i].Code, "DOC-") || !scratchLinkRe.MatchString(note.Docs[i].Code) {
+			return fmt.Errorf("invalid scratch document code %q", note.Docs[i].Code)
+		}
+		if seenDocs[note.Docs[i].Code] {
+			return fmt.Errorf("duplicate scratch document %s", note.Docs[i].Code)
+		}
+		seenDocs[note.Docs[i].Code] = true
+		if anchor := note.Docs[i].Anchor; anchor != nil {
+			anchor.Block = strings.TrimSpace(anchor.Block)
+			anchor.Quote = strings.TrimSpace(anchor.Quote)
+			if anchor.Block == "" || len(anchor.Block) > 300 || len(anchor.Quote) > 500 {
+				return fmt.Errorf("invalid scratch document anchor for %s", note.Docs[i].Code)
+			}
+		}
 	}
 	return nil
 }

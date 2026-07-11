@@ -3,13 +3,14 @@ title: Contextual scratchpad notes in documents
 type: design
 status: active
 created: "2026-07-11T22:34:57.226168Z"
-updated: "2026-07-11T22:34:57.226168Z"
+updated: "2026-07-11T23:02:13.144045Z"
 tasks:
+    - T-ADD-ANCHORED-SCRATCHPAD-RAIL
     - T-SCRATCHPAD-IN-DOCS
 ---
 ## Summary
 
-Add an optional **Notes** rail to document pages. It is closed by default. A user opens it from the document actions, then captures scratch notes beside the document without leaving the reading context.
+Add a narrow annotation gutter immediately after the document's reading column and an optional **Notes** rail beyond it. Clicking the gutter opens the rail and starts an unsaved scratch note at the touched passage. A separate Notes action opens the rail without creating a note.
 
 The rail is a contextual view of the repository Scratchpad, not a second note system and not a compressed infinite canvas. Notes created there remain ordinary `S-N` scratch notes, appear on `/scratchpad`, and carry an explicit association with the current document.
 
@@ -19,7 +20,8 @@ Use three distinct concepts:
 
 1. **Panel visibility is personal UI state.** Store whether the rail is open in browser `localStorage`, namespaced by repository and document code. Do not put this in document frontmatter: opening a panel should not edit shared project data, bump the document timestamp, or enable it for every user.
 2. **Note association is shared project state.** Add an optional `docs` list to each scratch note. This is separate from `link`, which currently records the task or document created by promotion.
-3. **Spatial position remains Scratchpad state.** The doc rail presents associated notes as a vertical list. The full Scratchpad continues to use each note's `x`, `y`, `width`, and `z`.
+3. **Document anchors are semantic, not pixel coordinates.** Store the nearest rendered block identity plus a short text quote. The clicked screen position is only used to choose that anchor; it is never persisted.
+4. **Spatial position remains Scratchpad state.** The doc rail aligns anchored notes with document passages when space permits. The full Scratchpad continues to use each note's `x`, `y`, `width`, and `z`.
 
 This gives the user notes “to the right” while preserving the existing Scratchpad's purpose and avoiding a cramped whiteboard inside a sidebar.
 
@@ -34,6 +36,15 @@ This gives the user notes “to the right” while preserving the existing Scrat
 - Remember the choice per repository and doc in `localStorage`. Failure to access local storage only makes the choice session-local.
 - Archived documents may show existing notes in a read-only rail, but do not offer Add, edit, delete, or promotion actions there.
 
+### Annotation gutter
+
+- Render a slim vertical gutter directly beside the right edge of the reading column on pointer-capable layouts.
+- Clicking or tapping it finds the nearest rendered block, opens the Notes rail, inserts an unsaved draft aligned with that block, and focuses its editor.
+- Existing anchored notes render as accessible markers in the gutter. Activating a marker opens and focuses that note without creating another.
+- The gutter has an explicit accessible name and keyboard-operable anchor buttons; it must not rely on a precise pointer gesture.
+- Empty drafts are cancelled rather than persisted. Escape cancels a new draft and returns focus to the triggering gutter position.
+- The ordinary Notes action remains available to browse notes without creating one.
+
 ### Open rail
 
 The right rail contains:
@@ -45,7 +56,9 @@ The right rail contains:
 - visible `S-N` identity and save state;
 - an empty state: “No notes for this document yet.”
 
-**Add note** inserts a focused editor at the top. Saving creates a normal scratch note associated with this doc. Empty new notes are cancelled rather than persisted. `Cmd/Ctrl+Enter` saves and `Escape` cancels. Existing notes autosave after the same short debounce as the full Scratchpad.
+**Add note** inserts a focused unanchored editor at the top. A gutter-created draft carries the selected passage anchor. Saving creates a normal scratch note associated with this doc. Empty new notes are cancelled rather than persisted. `Cmd/Ctrl+Enter` saves and `Escape` cancels. Existing notes autosave after the same short debounce as the full Scratchpad.
+
+Anchored notes are ordered by document position, with unanchored notes after them ordered by most recently updated. On wide screens cards should align with their passage when possible without overlapping; on compact screens show anchor context such as “Near: The right rail contains…” instead of preserving vertical alignment.
 
 The first release should not include drag/reorder, resize, pan/zoom, multi-select, undo/redo, or an “attach existing note” picker in the rail. Those controls belong to the full Scratchpad. A link from each rail card opens `/scratchpad?note=S-N`, where the full view selects and brings that note into view.
 
@@ -79,12 +92,17 @@ Extend `ScratchNote` with an optional list:
   color: yellow
   z: 12
   docs:
-    - DOC-SCRATCHPAD-DOCS
+    - code: DOC-SCRATCHPAD-DOCS
+      anchor:
+        block: open-rail
+        quote: The right rail contains
   created: "2026-07-12T08:00:00Z"
   updated: "2026-07-12T08:02:00Z"
 ```
 
-Use `docs`, not a single `doc`, because the same observation can apply to more than one document. Normalize codes, reject duplicates and nonexistent/non-document codes when associating through normal commands, and preserve an association if a doc is temporarily archived.
+Use `docs`, not a single `doc`, because the same observation can apply to more than one document and can have a different anchor in each. Normalize codes, reject duplicate codes and nonexistent/non-document codes when associating through normal commands, and preserve an association if a doc is temporarily archived.
+
+The optional anchor contains a stable rendered block key and a normalized quote excerpt. Prefer an existing heading id; otherwise derive a deterministic block key from the nearest heading and block ordinal. When rendering, match the block key first and use the quote to relocate the anchor if edits changed block ordinals. If neither matches, retain the association as unanchored and visibly label it “Original passage not found.”
 
 Do not overload `link`. A note may be associated with `DOC-A` while its promotion link points to `T-FOLLOW-UP`; these relationships have different meanings and lifecycles.
 
@@ -171,8 +189,10 @@ Rejected. Panel visibility is a personal viewing preference, not project knowled
 ## Acceptance criteria
 
 - Document pages render with no notes rail column until the user opens it.
+- A gutter click opens the rail with a focused, unsaved draft anchored to the nearest document block; no pixel coordinate is stored.
+- Existing anchored-note markers open their notes and keyboard users can perform the same operation.
 - Open/closed state is remembered for that repository and document without changing `.mar/`.
-- A user can add, edit, recolor, promote, and delete an associated scratch note from the rail.
+- A user can add, edit, recolor, promote, and delete an associated scratch note from the rail, and orphaned anchors degrade to clearly labelled unanchored notes.
 - Rail notes are ordinary stable `S-N` notes visible on `/scratchpad`; unrelated notes never appear in the doc rail.
 - A note may be associated with multiple docs and may independently link to a promoted task or doc.
 - Existing version-1 scratchpad files migrate without data loss, and older binaries fail safely on version 2.

@@ -18,7 +18,7 @@ func TestSearchMatchesTitlesAndBodies(t *testing.T) {
 	s := newTestStore(t)
 	s.CreateDoc("auth", "Authentication design", "design", "Bodies are stored as markdown.")
 	s.CreateDoc("other", "Unrelated", "analysis", "Talks about widgets and gizmos.")
-	s.CreateTask("Wire authentication", "", "")        // title match
+	s.CreateTask("Wire authentication", "", "")            // title match
 	s.CreateTask("Misc", "Needs the markdown parser.", "") // body match
 
 	got, err := s.Search("markdown", SearchOpts{})

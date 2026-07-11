@@ -151,15 +151,26 @@ func (srv *Server) handleDoc(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	pad, err := srv.store.Scratchpad()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	rawPad, err := json.Marshal(pad)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	srv.render(w, r, "doc", map[string]any{
-		"Title":     d.Title,
-		"BodyClass": "doc-page",
-		"Doc":       d,
-		"Updated":   shortDate(d.UpdatedAt),
-		"Body":      template.HTML(bodyHTML),
-		"Tasks":     related,
-		"Backlinks": backlinks,
-		"DocTypes":  store.DocTypes,
+		"Title":          d.Title,
+		"BodyClass":      "doc-page",
+		"Doc":            d,
+		"Updated":        shortDate(d.UpdatedAt),
+		"Body":           template.HTML(bodyHTML),
+		"Tasks":          related,
+		"Backlinks":      backlinks,
+		"DocTypes":       store.DocTypes,
+		"ScratchpadJSON": template.JS(rawPad),
 	})
 }
 

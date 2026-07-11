@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -13,11 +14,41 @@ func TestScratchpadStartsEmptyWithoutCreatingFile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if pad.Schema != 1 || pad.Revision != 0 || len(pad.Notes) != 0 {
-		t.Fatalf("Scratchpad = %+v, want empty schema 1 revision 0", pad)
+	if pad.Schema != 2 || pad.Revision != 0 || len(pad.Notes) != 0 {
+		t.Fatalf("Scratchpad = %+v, want empty schema 2 revision 0", pad)
 	}
 	if _, err := os.Stat(filepath.Join(s.dir, scratchpadName)); !errors.Is(err, os.ErrNotExist) {
 		t.Fatalf("empty read created scratchpad file: %v", err)
+	}
+}
+
+func TestScratchpadVersionOneMigratesAnchoredDocumentAssociations(t *testing.T) {
+	s := newTestStore(t)
+	raw := "version: 1\nrevision: 2\nnext_note: 2\nnotes:\n  - id: S-1\n    text: Check this\n    x: 0\n    y: 0\n    width: 260\n    color: yellow\n    z: 1\n    created: 2026-07-12T08:00:00Z\n    updated: 2026-07-12T08:00:00Z\n"
+	if err := os.WriteFile(filepath.Join(s.dir, scratchpadName), []byte(raw), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	pad, err := s.Scratchpad()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if pad.Schema != 1 || len(pad.Notes) != 1 || len(pad.Notes[0].Docs) != 0 {
+		t.Fatalf("pad = %+v", pad)
+	}
+	pad.Notes[0].Docs = []ScratchDocRef{{Code: "DOC-GUIDE", Anchor: &ScratchAnchor{Block: "setup-2", Quote: "Install mar"}}}
+	updated, err := s.SaveScratchpad(pad.Revision, pad.Notes)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if updated.Schema != 2 || updated.Notes[0].Docs[0].Anchor.Quote != "Install mar" {
+		t.Fatalf("updated = %+v", updated)
+	}
+}
+
+func TestScratchpadRejectsDuplicateDocumentAssociations(t *testing.T) {
+	note := ScratchNote{ID: "S-1", Text: "Idea", Width: 260, Color: "neutral", Docs: []ScratchDocRef{{Code: "DOC-A"}, {Code: "doc-a"}}}
+	if err := validateScratchNote(note); err == nil || !strings.Contains(err.Error(), "duplicate scratch document") {
+		t.Fatalf("err = %v", err)
 	}
 }
 

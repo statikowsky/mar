@@ -155,6 +155,35 @@ func TestScratchpadCreateAndSaveRoutes(t *testing.T) {
 	}
 }
 
+func TestDocumentPageIncludesAnchoredNotesRail(t *testing.T) {
+	srv, s := newTestServer(t)
+	doc, err := s.CreateDoc("ANNOTATED", "Annotated", "design", "## Setup\n\nInstall mar here.")
+	if err != nil {
+		t.Fatal(err)
+	}
+	code, body := get(t, srv.URL+"/doc/"+doc.Code)
+	if code != http.StatusOK {
+		t.Fatalf("status = %d", code)
+	}
+	for _, want := range []string{`class="doc-annotation-gutter"`, `id="doc-notes-rail"`, `data-doc-code="DOC-ANNOTATED"`} {
+		if !strings.Contains(body, want) {
+			t.Errorf("document page missing %q", want)
+		}
+	}
+
+	code, body = postJSON(t, srv.URL+"/scratchpad/note", `{"text":"Check install","docs":[{"code":"DOC-ANNOTATED","anchor":{"block":"setup-1","quote":"Install mar here."}}]}`)
+	if code != http.StatusCreated {
+		t.Fatalf("create status = %d: %s", code, body)
+	}
+	pad, err := s.Scratchpad()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := pad.Notes[0].Docs[0].Anchor.Block; got != "setup-1" {
+		t.Fatalf("anchor block = %q", got)
+	}
+}
+
 func TestScratchpadPromotesNoteToTaskAndDocument(t *testing.T) {
 	srv, s := newTestServer(t)
 	note, err := s.CreateScratchNote("Ship scratchpad\nDetailed body", 0, 0, 260, "yellow")

@@ -40,18 +40,34 @@ func (srv *Server) handleScratchpadData(w http.ResponseWriter, _ *http.Request) 
 
 func (srv *Server) handleCreateScratchNote(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		Text  string `json:"text"`
-		X     int    `json:"x"`
-		Y     int    `json:"y"`
-		Width int    `json:"width"`
-		Color string `json:"color"`
+		Text  string                `json:"text"`
+		X     int                   `json:"x"`
+		Y     int                   `json:"y"`
+		Width int                   `json:"width"`
+		Color string                `json:"color"`
+		Docs  []store.ScratchDocRef `json:"docs"`
 	}
 	if !decodeJSON(w, r, &req) {
 		return
 	}
-	if _, err := srv.store.CreateScratchNote(req.Text, req.X, req.Y, req.Width, req.Color); err != nil {
+	for _, ref := range req.Docs {
+		if _, err := srv.store.GetDoc(ref.Code); err != nil {
+			http.Error(w, fmt.Sprintf("scratch document %s: %v", ref.Code, err), http.StatusBadRequest)
+			return
+		}
+	}
+	note, err := srv.store.CreateScratchNote(req.Text, req.X, req.Y, req.Width, req.Color)
+	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
+	}
+	if len(req.Docs) > 0 {
+		note.Docs = req.Docs
+		if _, err := srv.store.UpdateScratchNote(note); err != nil {
+			_ = srv.store.DeleteScratchNote(note.ID)
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
 	}
 	pad, err := srv.store.Scratchpad()
 	if err != nil {

@@ -3,6 +3,7 @@
 <h1>{{.Doc.Title}}</h1>
 <p class="meta"><button type="button" class="code-chip" data-copy-code="{{.Doc.Code}}" aria-label="Copy {{.Doc.Code}}" title="Copy {{.Doc.Code}}">{{.Doc.Code}}</button> · <span class="typetag {{.Doc.Type}}">{{.Doc.Type}}</span> · updated {{.Updated}}{{if eq .Doc.Status "archived"}} · <span class="archived-tag">archived</span>{{end}}</p>
 <p class="doc-actions">
+  <button class="docact" type="button" id="doc-notes-toggle" aria-controls="doc-notes-rail" aria-expanded="false">Notes</button>
   {{if eq .Doc.Status "archived"}}
   <button class="docact" data-code="{{.Doc.Code}}" data-action="unarchive">Unarchive</button>
   <button class="docact danger" data-code="{{.Doc.Code}}" data-action="delete">Delete</button>
@@ -19,7 +20,7 @@
   </nav>
 </aside>
 <main class="doc-content">
-<div class="rendered-body">{{.Body}}</div>
+<div class="rendered-body" data-doc-code="{{.Doc.Code}}">{{.Body}}</div>
 {{if ne .Doc.Status "archived"}}
 <form class="inline-editor" data-code="{{.Doc.Code}}" hidden>
   <div class="editor-head">
@@ -51,9 +52,18 @@
 </ul>
 {{end}}
 </main>
+<button type="button" class="doc-annotation-gutter" aria-label="Add a note at this document position" title="Add note here"></button>
+<aside id="doc-notes-rail" class="doc-notes-rail" data-doc-code="{{.Doc.Code}}" aria-label="Notes for {{.Doc.Code}}" hidden>
+  <div class="doc-notes-head"><h2 tabindex="-1">Notes</h2><button type="button" class="docact" data-notes-close>Close</button></div>
+  <button type="button" class="docact" data-notes-add>Add note</button>
+  <p class="doc-notes-empty">No notes for this document yet.</p>
+  <div class="doc-notes-list"></div>
+  <p class="sr-only" aria-live="polite" data-notes-live></p>
+</aside>
 </div>
 
 <script>
+window.DOC_SCRATCHPAD_STATE = {{.ScratchpadJSON}};
 // Archive / unarchive / delete actions.
 document.querySelectorAll("button.docact").forEach(function (btn) {
   const action = btn.dataset.action;
@@ -202,6 +212,110 @@ document.querySelectorAll("button.docact").forEach(function (btn) {
   window.addEventListener("beforeunload", function (e) {
     if (dirty) { e.preventDefault(); e.returnValue = ""; }
   });
+})();
+
+// Contextual document notes and annotation gutter.
+(function () {
+  const pad = window.DOC_SCRATCHPAD_STATE;
+  const rail = document.getElementById("doc-notes-rail");
+  const toggle = document.getElementById("doc-notes-toggle");
+  const gutter = document.querySelector(".doc-annotation-gutter");
+  const body = document.querySelector(".doc-content > .rendered-body:not(.edit-preview)");
+  if (!pad || !rail || !toggle || !gutter || !body) return;
+  const code = rail.dataset.docCode;
+  const list = rail.querySelector(".doc-notes-list");
+  const empty = rail.querySelector(".doc-notes-empty");
+  const live = rail.querySelector("[data-notes-live]");
+  const storageKey = "mar:doc-notes:" + location.pathname;
+  let draft = null;
+
+  let heading = "document";
+  let ordinal = 0;
+  const blocks = Array.from(body.children).filter(function (el) { return !/^(SCRIPT|STYLE)$/.test(el.tagName); });
+  blocks.forEach(function (el) {
+    if (/^H[1-6]$/.test(el.tagName)) { heading = el.id || el.textContent.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "document"; ordinal = 0; }
+    ordinal += 1;
+    el.dataset.noteBlock = heading + "-" + ordinal;
+  });
+
+  function refFor(note) { return (note.docs || []).find(function (ref) { return ref.code.toUpperCase() === code.toUpperCase(); }); }
+  function associated() { return pad.notes.filter(refFor); }
+  function openRail(focus) {
+    rail.hidden = false;
+    document.querySelector(".doc-layout").classList.add("has-notes");
+    toggle.setAttribute("aria-expanded", "true");
+    try { localStorage.setItem(storageKey, "open"); } catch (_) {}
+    if (focus) rail.querySelector("h2").focus();
+  }
+  function closeRail() {
+    rail.hidden = true;
+    document.querySelector(".doc-layout").classList.remove("has-notes");
+    toggle.setAttribute("aria-expanded", "false");
+    draft = null;
+    try { localStorage.removeItem(storageKey); } catch (_) {}
+    renderNotes(); toggle.focus();
+  }
+  function anchorLabel(ref) {
+    if (!ref || !ref.anchor) return "Unanchored";
+    const found = blocks.some(function (el) { return el.dataset.noteBlock === ref.anchor.block; });
+    return found ? "Near: " + (ref.anchor.quote || ref.anchor.block) : "Original passage not found";
+  }
+  function renderNotes() {
+    list.replaceChildren();
+    const notes = associated();
+    empty.hidden = notes.length > 0 || !!draft;
+    toggle.textContent = notes.length ? "Notes · " + notes.length : "Notes";
+    const rows = draft ? [{ draft: true, text: "", ref: draft }] : [];
+    notes.forEach(function (note) { rows.push({ note: note, text: note.text, ref: refFor(note) }); });
+    rows.forEach(function (row) {
+      const card = document.createElement("section");
+      card.className = "doc-note-card color-" + (row.note ? row.note.color : "neutral");
+      const meta = document.createElement("p"); meta.className = "scratch-note-meta";
+      meta.textContent = (row.note ? row.note.id + " · " : "New note · ") + anchorLabel(row.ref);
+      const editor = document.createElement("textarea"); editor.className = "scratch-note-editor"; editor.value = row.text; editor.placeholder = "Write a note…";
+      const actions = document.createElement("div"); actions.className = "scratch-note-actions"; actions.style.display = "flex";
+      const save = document.createElement("button"); save.type = "button"; save.textContent = "Save";
+      const open = document.createElement("a"); open.href = row.note ? "/scratchpad?note=" + encodeURIComponent(row.note.id) : "/scratchpad"; open.textContent = "Open in Scratchpad";
+      actions.append(save, open); card.append(meta, editor, actions); list.appendChild(card);
+      save.addEventListener("click", function () { saveRow(row, editor.value, save); });
+      editor.addEventListener("keydown", function (event) {
+        if ((event.metaKey || event.ctrlKey) && event.key === "Enter") { event.preventDefault(); save.click(); }
+        if (event.key === "Escape" && row.draft) { draft = null; renderNotes(); gutter.focus(); }
+      });
+      if (row.draft) requestAnimationFrame(function () { editor.focus(); });
+    });
+  }
+  async function saveRow(row, text, button) {
+    text = text.trim();
+    if (!text) { if (row.draft) { draft = null; renderNotes(); } return; }
+    button.disabled = true;
+    try {
+      if (row.draft) {
+        const resp = await fetch("/scratchpad/note", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: text, docs: [{ code: code, anchor: row.ref.anchor || undefined }] }) });
+        if (!resp.ok) throw new Error(await resp.text());
+        Object.assign(pad, await resp.json()); draft = null; live.textContent = "Note created";
+      } else {
+        row.note.text = text;
+        const resp = await fetch("/scratchpad", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ revision: pad.revision, notes: pad.notes }) });
+        if (!resp.ok) throw new Error(await resp.text());
+        Object.assign(pad, await resp.json()); live.textContent = "Note saved";
+      }
+      renderNotes();
+    } catch (error) { live.textContent = "Note save failed"; alert(error.message || "Note save failed"); button.disabled = false; }
+  }
+  function newDraft(anchor) { draft = { code: code, anchor: anchor || null }; openRail(false); renderNotes(); }
+  toggle.addEventListener("click", function () { rail.hidden ? openRail(true) : closeRail(); });
+  rail.querySelector("[data-notes-close]").addEventListener("click", closeRail);
+  rail.querySelector("[data-notes-add]").addEventListener("click", function () { newDraft(null); });
+  gutter.addEventListener("click", function (event) {
+    let nearest = blocks[0], distance = Infinity;
+    blocks.forEach(function (el) { const box = el.getBoundingClientRect(); const d = Math.abs(event.clientY - Math.max(box.top, Math.min(event.clientY, box.bottom))); if (d < distance) { distance = d; nearest = el; } });
+    if (!nearest) return newDraft(null);
+    newDraft({ block: nearest.dataset.noteBlock, quote: nearest.textContent.trim().replace(/\s+/g, " ").slice(0, 160) });
+  });
+  document.addEventListener("keydown", function (event) { if (event.key === "Escape" && !rail.hidden && !draft) closeRail(); });
+  try { if (localStorage.getItem(storageKey) === "open") openRail(false); } catch (_) {}
+  renderNotes();
 })();
 </script>
 {{end}}
