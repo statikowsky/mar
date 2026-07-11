@@ -5,10 +5,12 @@ columns:
         - T-ADD-DOC-TOUCH-AND
         - T-NORMALIZE-EXPLICIT-DATE-TIMESTAMP
         - T-UPGRADE-GITHUB-ACTIONS-OFF
+        - T-MAKE-SCRATCHPAD-CONFLICT-OVERWRITE
     - name: In progress
       tasks: []
     - name: Done
       tasks:
+        - T-SCRATCHPAD-IN-DOCS
         - T-IMPLEMENT-SCRATCHPAD-MVP
         - T-SPECIFY-SCRATCHPAD-WHITEBOARD
         - T-RELEASE-MAR-V0-4
