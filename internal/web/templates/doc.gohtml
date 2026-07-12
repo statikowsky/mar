@@ -239,7 +239,16 @@ document.querySelectorAll("button.docact").forEach(function (btn) {
 
   function refFor(note) { return (note.docs || []).find(function (ref) { return ref.code.toUpperCase() === code.toUpperCase(); }); }
   function associated() { return pad.notes.filter(refFor); }
+  function positionNotesRail() {
+    if (window.matchMedia("(max-width: 900px)").matches) {
+      document.documentElement.style.removeProperty("--doc-notes-left");
+      return;
+    }
+    const left = Math.round(gutter.getBoundingClientRect().right + 8);
+    document.documentElement.style.setProperty("--doc-notes-left", left + "px");
+  }
   function openRail(focus) {
+    positionNotesRail();
     rail.hidden = false;
     toggle.setAttribute("aria-expanded", "true");
     try { localStorage.setItem(storageKey, "open"); } catch (_) {}
@@ -338,8 +347,9 @@ document.querySelectorAll("button.docact").forEach(function (btn) {
   let notePositionFrame = null;
   function scheduleNotePositions() { if (!notePositionFrame) notePositionFrame = requestAnimationFrame(function () { notePositionFrame = null; positionNotes(); }); }
   window.addEventListener("scroll", scheduleNotePositions, { passive: true });
-  window.addEventListener("resize", scheduleNotePositions);
+  window.addEventListener("resize", function () { positionNotesRail(); scheduleNotePositions(); });
   document.addEventListener("keydown", function (event) { if (event.key === "Escape" && !rail.hidden && !draft) closeRail(); });
+  positionNotesRail();
   renderNotes();
   if (associated().length) openRail(false);
   else try { if (localStorage.getItem(storageKey) === "open") openRail(false); } catch (_) {}

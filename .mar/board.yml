@@ -10,6 +10,7 @@ columns:
       tasks: []
     - name: Done
       tasks:
+        - T-PLACE-DOCUMENT-NOTES-BESIDE
         - T-RETURN-FROM-SCRATCHPAD-TO
         - T-POSITION-DOCUMENT-NOTES-AT
         - T-IMPROVE-LINKED-DOCUMENT-NOTE
