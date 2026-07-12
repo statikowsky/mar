@@ -358,7 +358,7 @@ body.doc-page { max-width: 1270px; }
 .doc-annotation-gutter {
   position: relative;
   align-self: stretch;
-  width: 12px;
+  width: 28px;
   min-height: 180px;
   padding: 0;
   border: 0;
@@ -367,6 +367,13 @@ body.doc-page { max-width: 1270px; }
   cursor: crosshair;
 }
 .doc-annotation-gutter:hover, .doc-annotation-gutter:focus-visible { border-left-color: var(--accent); background: var(--accent-soft); outline: none; }
+.gutter-follow-icon {
+  position: absolute; top: var(--gutter-icon-y, 36px); left: 5px; width: 22px; height: 22px;
+  display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--line); border-radius: 6px;
+  background: var(--surface); color: var(--muted); box-shadow: 0 2px 6px var(--shadow); pointer-events: none;
+}
+.doc-annotation-gutter:hover .gutter-follow-icon, .doc-annotation-gutter:focus-visible .gutter-follow-icon { border-color: var(--accent); background: var(--accent); color: #fff; }
+.gutter-follow-icon .ui-icon { width: 13px; height: 13px; }
 .doc-annotation-gutter::after {
   content: attr(data-tooltip);
   position: absolute;
@@ -383,8 +390,8 @@ body.doc-page { max-width: 1270px; }
   pointer-events: none;
 }
 .doc-annotation-gutter:hover::after, .doc-annotation-gutter:focus-visible::after { opacity: 1; }
-.doc-layout { grid-template-columns: minmax(0, 820px) 12px; column-gap: 10px; }
-.doc-layout.has-outline { grid-template-columns: 210px minmax(0, 820px) 12px; }
+.doc-layout { grid-template-columns: minmax(0, 820px) 28px; column-gap: 10px; }
+.doc-layout.has-outline { grid-template-columns: 210px minmax(0, 820px) 28px; }
 .doc-notes-rail {
   position: fixed;
   top: 40px;

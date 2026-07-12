@@ -11,6 +11,7 @@ columns:
       tasks: []
     - name: Done
       tasks:
+        - T-ADD-SCROLL-FOLLOWING-DOCUMENT
         - T-SHOW-NOTE-SAVE-KEYBOARD
         - T-IMPROVE-SCRATCHPAD-MOUSE-AND
         - T-ADD-CONSISTENT-ICONS-TO

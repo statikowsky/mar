@@ -52,7 +52,7 @@
 </ul>
 {{end}}
 </main>
-<button type="button" class="doc-annotation-gutter" aria-label="Create note at this document position" data-tooltip="Create note"></button>
+<button type="button" class="doc-annotation-gutter" aria-label="Create note at this document position" data-tooltip="Create note"><span class="gutter-follow-icon" data-mar-icon="message-square-plus"></span></button>
 <aside id="doc-notes-rail" class="doc-notes-rail" data-doc-code="{{.Doc.Code}}" aria-label="Notes for {{.Doc.Code}}" hidden>
   <div class="doc-notes-head"><h2 tabindex="-1">Notes</h2><div><button type="button" class="docact" data-notes-add><span data-mar-icon="message-square-plus"></span>Add note</button> <button type="button" class="docact icon-only" data-notes-close aria-label="Close notes" title="Close notes"><span data-mar-icon="x"></span></button></div></div>
   <p class="doc-notes-empty">No notes for this document yet.</p>
@@ -250,6 +250,12 @@ document.querySelectorAll("button.docact").forEach(function (btn) {
     const left = Math.round(gutter.getBoundingClientRect().right + 8);
     document.documentElement.style.setProperty("--doc-notes-left", left + "px");
   }
+  function positionGutterIcon() {
+    const rect = gutter.getBoundingClientRect();
+    const preferred = Math.round(window.innerHeight * 0.48 - rect.top);
+    const top = Math.max(12, Math.min(Math.max(12, rect.height - 36), preferred));
+    gutter.style.setProperty("--gutter-icon-y", top + "px");
+  }
   function openRail(focus) {
     positionNotesRail();
     rail.hidden = false;
@@ -374,12 +380,13 @@ document.querySelectorAll("button.docact").forEach(function (btn) {
   });
   gutter.addEventListener("pointermove", function (event) { gutter.style.setProperty("--tooltip-y", event.offsetY + "px"); });
   let notePositionFrame = null;
-  function scheduleNotePositions() { if (!notePositionFrame) notePositionFrame = requestAnimationFrame(function () { notePositionFrame = null; positionNotes(); }); }
+  function scheduleNotePositions() { if (!notePositionFrame) notePositionFrame = requestAnimationFrame(function () { notePositionFrame = null; positionNotes(); positionGutterIcon(); }); }
   window.addEventListener("scroll", scheduleNotePositions, { passive: true });
   window.addEventListener("resize", function () { positionNotesRail(); scheduleNotePositions(); });
   document.addEventListener("keydown", function (event) { if (event.key === "Escape" && !rail.hidden && !draft) closeRail(); });
   window.addEventListener("beforeunload", function (event) { if (hasDirtyNotes()) { event.preventDefault(); event.returnValue = ""; } });
   positionNotesRail();
+  positionGutterIcon();
   renderNotes();
   if (associated().length) openRail(false);
   else try { if (localStorage.getItem(storageKey) === "open") openRail(false); } catch (_) {}
