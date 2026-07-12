@@ -119,7 +119,7 @@ func TestScratchpadPageAndIndexLink(t *testing.T) {
 	if code != http.StatusOK {
 		t.Fatalf("status = %d", code)
 	}
-	for _, want := range []string{`<body class="scratch-page">`, `id="scratch-surface"`, `window.SCRATCHPAD_STATE`, `aria-label="Scratchpad notes"`, `new URLSearchParams(location.search).get("note")`, `linkedDocHref(note)`, `"?note=" + encodeURIComponent(note.id)`, `scratch-drag-handle`, `data-note-action="edit"`, `data-note-action="delete"`, `Create task`, `Create document`, `window.marIcon("pencil")`, `window.marIcon("list-todo")`, `window.marIcon("file-plus-2")`, `closest("[data-list-action]")`, `normalizeWheelDelta`, `isDiscreteWheel`, `scheduleViewSave`, `e.ctrlKey || e.metaKey`, `e.shiftKey`, `applyViewTransform`, `note-action-control`, `note-action-select`, `note-action-link`, `window.marIcon("file-text")`} {
+	for _, want := range []string{`<body class="scratch-page">`, `id="scratch-surface"`, `window.SCRATCHPAD_STATE`, `aria-label="Scratchpad notes"`, `new URLSearchParams(location.search).get("note")`, `linkedDocHref(note)`, `"?note=" + encodeURIComponent(note.id)`, `scratch-drag-handle`, `data-note-action="edit"`, `data-note-action="delete"`, `Create task`, `Create document`, `window.marIcon("pencil")`, `window.marIcon("list-todo")`, `window.marIcon("file-plus-2")`, `closest("[data-list-action]")`, `normalizeWheelDelta`, `isDiscreteWheel`, `scheduleViewSave`, `e.ctrlKey || e.metaKey`, `e.shiftKey`, `applyViewTransform`, `note-shortcut`, `⌘↵ saves`, `note-action-control`, `note-action-select`, `note-action-link`, `window.marIcon("file-text")`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("scratchpad page missing %q:\n%s", want, body)
 		}
@@ -211,7 +211,7 @@ func TestDocumentPageIncludesAnchoredNotesRail(t *testing.T) {
 	if code != http.StatusOK {
 		t.Fatalf("status = %d", code)
 	}
-	for _, want := range []string{`class="doc-annotation-gutter"`, `data-tooltip="Create note"`, `id="doc-notes-rail"`, `data-doc-code="DOC-ANNOTATED"`, `if (associated().length) openRail(false)`, `positionNotes()`, `positionNotesRail()`, `gutter.getBoundingClientRect().right`, `--doc-notes-left`, `new URLSearchParams(location.search).get("note")`, `scrollIntoView({ behavior: "smooth", block: "center" })`, `doc-note-target`, `note-action-link`, `note-icon-button danger`, `window.marIcon("sticky-note")`, `window.marIcon("save")`, `"save": '<path`, `Save changes`, `Create note`, `Saving…`, `data-note-status`, `hasDirtyNotes()`, `Discard unsaved note changes?`, `beforeunload`, `deleteRow(row`} {
+	for _, want := range []string{`class="doc-annotation-gutter"`, `data-tooltip="Create note"`, `id="doc-notes-rail"`, `data-doc-code="DOC-ANNOTATED"`, `if (associated().length) openRail(false)`, `positionNotes()`, `positionNotesRail()`, `gutter.getBoundingClientRect().right`, `--doc-notes-left`, `new URLSearchParams(location.search).get("note")`, `scrollIntoView({ behavior: "smooth", block: "center" })`, `doc-note-target`, `note-action-link`, `note-icon-button danger`, `window.marIcon("sticky-note")`, `window.marIcon("save")`, `"save": '<path`, `Save changes`, `Create note`, `Saving…`, `note-shortcut`, `⌘↵ saves`, `data-note-status`, `hasDirtyNotes()`, `Discard unsaved note changes?`, `beforeunload`, `deleteRow(row`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("document page missing %q", want)
 		}

@@ -150,6 +150,10 @@
         editor.value = note.text;
         editor.setAttribute("aria-label", "Edit " + note.id);
         el.appendChild(editor);
+        const shortcut = document.createElement("p");
+        shortcut.className = "note-shortcut";
+        shortcut.textContent = "⌘↵ saves · Ctrl+Enter on Windows/Linux";
+        el.appendChild(shortcut);
       } else {
         const text = document.createElement("div");
         text.className = "scratch-note-text";

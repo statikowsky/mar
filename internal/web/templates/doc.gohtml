@@ -286,6 +286,7 @@ document.querySelectorAll("button.docact").forEach(function (btn) {
       const meta = document.createElement("p"); meta.className = "scratch-note-meta";
       meta.textContent = (row.note ? row.note.id + " · " : "New note · ") + anchorLabel(row.ref);
       const editor = document.createElement("textarea"); editor.className = "scratch-note-editor"; editor.value = row.text; editor.dataset.savedText = row.text.trim(); editor.placeholder = "Write a note…";
+      const shortcut = document.createElement("p"); shortcut.className = "note-shortcut"; shortcut.textContent = "⌘↵ saves · Ctrl+Enter on Windows/Linux";
       const actions = document.createElement("div"); actions.className = "scratch-note-actions"; actions.style.display = "flex";
       const save = document.createElement("button"); save.type = "button"; save.className = "note-action-control note-action-link primary"; save.disabled = true;
       const saveLabel = document.createElement("span"); saveLabel.textContent = row.draft ? "Create note" : "Save changes"; save.innerHTML = window.marIcon("save"); save.append(saveLabel);
@@ -296,7 +297,7 @@ document.querySelectorAll("button.docact").forEach(function (btn) {
         const remove = document.createElement("button"); remove.type = "button"; remove.className = "note-action-control note-icon-button danger"; remove.setAttribute("aria-label", "Delete " + row.note.id); remove.title = "Delete note"; remove.innerHTML = window.marIcon("trash-2");
         actions.append(remove); remove.addEventListener("click", function () { deleteRow(row, remove); });
       }
-      card.append(meta, editor, actions); list.appendChild(card);
+      card.append(meta, editor, shortcut, actions); list.appendChild(card);
       function updateSaveState() { save.disabled = editor.value.trim() === editor.dataset.savedText || (row.draft && !editor.value.trim()); status.textContent = ""; }
       save.addEventListener("click", function () { saveRow(row, editor, save, saveLabel, status); });
       editor.addEventListener("input", updateSaveState);
