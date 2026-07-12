@@ -193,6 +193,21 @@ func TestRepairDropsDanglingBoardCode(t *testing.T) {
 	}
 }
 
+func TestRepairBuildsTaskColumnIndex(t *testing.T) {
+	s := newTestStore(t)
+	task, err := s.CreateTask("Indexed", "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	d, err := s.load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := d.columnOf(task.Code); got != "To do" {
+		t.Errorf("columnOf(%s) = %q, want To do", task.Code, got)
+	}
+}
+
 func TestExternalEditVisibleWithoutReopen(t *testing.T) {
 	s := newTestStore(t)
 	tk, err := s.CreateTask("Watch me", "", "")

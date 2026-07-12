@@ -1,6 +1,9 @@
 package store
 
-import "testing"
+import (
+	"errors"
+	"testing"
+)
 
 func TestLinkAndLookup(t *testing.T) {
 	s := newTestStore(t)
@@ -24,6 +27,65 @@ func TestLinkAndLookup(t *testing.T) {
 	}
 	if len(docs) != 1 || docs[0].Code != d.Code {
 		t.Errorf("DocsForTask = %d docs", len(docs))
+	}
+}
+
+func TestDocumentAndTaskViewsUseRelatedData(t *testing.T) {
+	s := newTestStore(t)
+	doc, err := s.CreateDoc("auth", "Auth", "design", "See [[T-WIRE]].")
+	if err != nil {
+		t.Fatal(err)
+	}
+	task, err := s.CreateTaskWithCode("WIRE", "Wire auth", "See [[AUTH]].", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Link(doc.Code, task.Code); err != nil {
+		t.Fatal(err)
+	}
+
+	docView, err := s.DocumentView(doc.Code)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if docView.Doc.Code != doc.Code || len(docView.Tasks) != 1 || docView.Tasks[0].Code != task.Code {
+		t.Errorf("document view = %+v", docView)
+	}
+	if code, kind, ok := docView.Resolve(task.Code); !ok || code != task.Code || kind != "task" {
+		t.Errorf("document resolver = %q %q %v", code, kind, ok)
+	}
+	if len(docView.Backlinks) != 1 || docView.Backlinks[0].Code != task.Code {
+		t.Errorf("document backlinks = %+v", docView.Backlinks)
+	}
+
+	taskView, err := s.TaskView(task.Code)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if taskView.Task.Code != task.Code || len(taskView.Docs) != 1 || taskView.Docs[0].Code != doc.Code {
+		t.Errorf("task view = %+v", taskView)
+	}
+	if code, kind, ok := taskView.Resolve(doc.Code); !ok || code != doc.Code || kind != "doc" {
+		t.Errorf("task resolver = %q %q %v", code, kind, ok)
+	}
+}
+
+func TestValidateDocCodes(t *testing.T) {
+	s := newTestStore(t)
+	doc, err := s.CreateDoc("auth", "Auth", "design", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := s.ValidateDocCodes([]string{"auth", doc.Code}); err != nil {
+		t.Fatalf("ValidateDocCodes: %v", err)
+	}
+	if err := s.ValidateDocCodes([]string{doc.Code, "missing"}); err == nil {
+		t.Fatal("ValidateDocCodes missing doc = nil error")
+	} else {
+		var validation *DocValidationError
+		if !errors.As(err, &validation) || validation.Code != "missing" {
+			t.Errorf("validation error = %v, want missing code", err)
+		}
 	}
 }
 

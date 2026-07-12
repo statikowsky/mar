@@ -364,6 +364,7 @@ func (s *Store) MoveTaskWithPlacement(code, columnName string, placement Placeme
 			return err
 		}
 		insertTask(col, code, insert)
+		d.rebuildColumnIndex()
 		e.meta.Updated = nowStamp()
 		if err := s.writeTask(code, e); err != nil {
 			return err

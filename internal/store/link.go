@@ -55,6 +55,10 @@ func (s *Store) Backlinks(rawCode string) ([]Backlink, error) {
 	if err != nil {
 		return nil, err
 	}
+	return d.backlinks(rawCode)
+}
+
+func (d *data) backlinks(rawCode string) ([]Backlink, error) {
 	target, targetKind, ok := d.resolveRef(rawCode)
 	if !ok {
 		return nil, fmt.Errorf("%s: %w", rawCode, ErrNotFound)
@@ -221,11 +225,15 @@ func (s *Store) Unlink(docCode, taskCode string) error {
 }
 
 func (s *Store) TaskCodesForDoc(docCode string) ([]string, error) {
-	full, err := normalizeDocCode(docCode)
+	d, err := s.load()
 	if err != nil {
 		return nil, err
 	}
-	d, err := s.load()
+	return d.taskCodesForDoc(docCode)
+}
+
+func (d *data) taskCodesForDoc(docCode string) ([]string, error) {
+	full, err := normalizeDocCode(docCode)
 	if err != nil {
 		return nil, err
 	}
@@ -239,11 +247,15 @@ func (s *Store) TaskCodesForDoc(docCode string) ([]string, error) {
 }
 
 func (s *Store) DocCodesForTask(taskCode string) ([]string, error) {
-	taskCode, err := normalizeTaskCode(taskCode)
+	d, err := s.load()
 	if err != nil {
 		return nil, err
 	}
-	d, err := s.load()
+	return d.docCodesForTask(taskCode)
+}
+
+func (d *data) docCodesForTask(taskCode string) ([]string, error) {
+	taskCode, err := normalizeTaskCode(taskCode)
 	if err != nil {
 		return nil, err
 	}
@@ -261,11 +273,15 @@ func (s *Store) DocCodesForTask(taskCode string) ([]string, error) {
 }
 
 func (s *Store) TasksForDoc(docCode string) ([]Task, error) {
-	codes, err := s.TaskCodesForDoc(docCode)
+	d, err := s.load()
 	if err != nil {
 		return nil, err
 	}
-	d, err := s.load()
+	return d.tasksForDoc(docCode)
+}
+
+func (d *data) tasksForDoc(docCode string) ([]Task, error) {
+	codes, err := d.taskCodesForDoc(docCode)
 	if err != nil {
 		return nil, err
 	}
@@ -285,11 +301,15 @@ func (s *Store) DocsForTask(taskCode string) ([]Doc, error) {
 	if err != nil {
 		return nil, err
 	}
-	taskCode, _, err = d.findTask(taskCode)
+	return d.docsForTask(taskCode)
+}
+
+func (d *data) docsForTask(taskCode string) ([]Doc, error) {
+	canonical, _, err := d.findTask(taskCode)
 	if err != nil {
 		return nil, err
 	}
-	codes, err := s.DocCodesForTask(taskCode)
+	codes, err := d.docCodesForTask(canonical)
 	if err != nil {
 		return nil, err
 	}

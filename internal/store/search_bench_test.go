@@ -21,18 +21,21 @@ func synthStore(b *testing.B, n int) *Store {
 	now := nowStamp()
 	taskCodes := make([]string, 0, n)
 	for i := range n {
-		body := filler
+		code := fmt.Sprintf("T-%d", i)
+		docBody, taskBody := filler, filler
 		if i%10 == 0 {
-			body += "\n\nThis one mentions the needle keyword."
+			docBody += "\n\nThis one mentions the needle keyword."
+			taskBody += "\n\nThis one mentions the needle keyword."
 		}
+		docBody += "\n\nRelated task: [[" + code + "]]"
+		taskBody += fmt.Sprintf("\n\nRelated document: [[DOC-D%d]]", i)
 		doc := &docEntity{meta: docMeta{Title: fmt.Sprintf("Doc title %d", i),
-			Type: "design", Status: "active", Created: now, Updated: now}, body: body}
+			Type: "design", Status: "active", Created: now, Updated: now, Tasks: []string{code}}, body: docBody}
 		if err := s.writeDoc(fmt.Sprintf("DOC-D%d", i), doc); err != nil {
 			b.Fatal(err)
 		}
-		code := fmt.Sprintf("T-%d", i)
 		task := &taskEntity{meta: taskMeta{Title: fmt.Sprintf("Task title %d", i),
-			Status: "active", Created: now, Updated: now}, body: body}
+			Status: "active", Created: now, Updated: now}, body: taskBody}
 		if err := s.writeTask(code, task); err != nil {
 			b.Fatal(err)
 		}
@@ -45,6 +48,39 @@ func synthStore(b *testing.B, n int) *Store {
 		b.Fatal(err)
 	}
 	return s
+}
+
+// BenchmarkReadViews measures the full fresh-load path behind the board,
+// document, and task pages. The synthesized entities have links, backlinks,
+// and document-task associations so each view performs its normal assembly.
+func BenchmarkReadViews(b *testing.B) {
+	for _, n := range []int{100, 1000} {
+		s := synthStore(b, n)
+		b.Run(fmt.Sprintf("board/%d", n), func(b *testing.B) {
+			b.ReportAllocs()
+			for range b.N {
+				if _, err := s.BoardView(); err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
+		b.Run(fmt.Sprintf("document/%d", n), func(b *testing.B) {
+			b.ReportAllocs()
+			for range b.N {
+				if _, err := s.DocumentView("DOC-D0"); err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
+		b.Run(fmt.Sprintf("task/%d", n), func(b *testing.B) {
+			b.ReportAllocs()
+			for range b.N {
+				if _, err := s.TaskView("T-0"); err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
+	}
 }
 
 // BenchmarkSearch measures the cold path a real `mar search` pays: each call

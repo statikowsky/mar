@@ -7,6 +7,9 @@ type Interface interface {
 	DataVersion() (int64, error)
 	Board() ([]BoardColumn, error)
 	BoardView() (BoardView, error)
+	IndexView() (IndexView, error)
+	DocumentView(code string) (DocumentView, error)
+	TaskView(code string) (TaskView, error)
 	ListColumns() ([]Column, error)
 	AddColumn(name, afterName string) (Column, error)
 	AddColumnBefore(name, beforeName string) (Column, error)
@@ -29,6 +32,7 @@ type Interface interface {
 	DeleteTask(code string) error
 	CreateDoc(code, title, docType, body string) (Doc, error)
 	GetDoc(code string) (Doc, error)
+	ValidateDocCodes(codes []string) error
 	ListDocs(docType, status string) ([]Doc, error)
 	EditDoc(code string, title, docType, body *string) (Doc, error)
 	SetDocDates(code string, created, updated *string) (Doc, error)

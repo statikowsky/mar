@@ -136,6 +136,20 @@ func TestScratchpadPageAndIndexLink(t *testing.T) {
 	}
 }
 
+func TestScratchpadCreateReportsTheInvalidDocumentReference(t *testing.T) {
+	srv, s := newTestServer(t)
+	if _, err := s.CreateDoc("VALID", "Valid", "design", ""); err != nil {
+		t.Fatal(err)
+	}
+	code, body := postJSON(t, srv.URL+"/scratchpad/note", `{"text":"Check docs","docs":[{"code":"DOC-VALID"},{"code":"DOC-MISSING"}]}`)
+	if code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want 400: %s", code, body)
+	}
+	if !strings.Contains(body, "scratch document DOC-MISSING: doc DOC-MISSING: not found") {
+		t.Errorf("error = %q", body)
+	}
+}
+
 func TestPagesUseSharedActionIcons(t *testing.T) {
 	srv, s := newTestServer(t)
 	doc, err := s.CreateDoc("ICONS", "Icons", "design", "Body")

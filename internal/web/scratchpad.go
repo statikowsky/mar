@@ -50,11 +50,18 @@ func (srv *Server) handleCreateScratchNote(w http.ResponseWriter, r *http.Reques
 	if !decodeJSON(w, r, &req) {
 		return
 	}
-	for _, ref := range req.Docs {
-		if _, err := srv.store.GetDoc(ref.Code); err != nil {
-			http.Error(w, fmt.Sprintf("scratch document %s: %v", ref.Code, err), http.StatusBadRequest)
-			return
+	codes := make([]string, len(req.Docs))
+	for i, ref := range req.Docs {
+		codes[i] = ref.Code
+	}
+	if err := srv.store.ValidateDocCodes(codes); err != nil {
+		ref := ""
+		var validation *store.DocValidationError
+		if errors.As(err, &validation) {
+			ref = validation.Code
 		}
+		http.Error(w, fmt.Sprintf("scratch document %s: %v", ref, err), http.StatusBadRequest)
+		return
 	}
 	note, err := srv.store.CreateScratchNote(req.Text, req.X, req.Y, req.Width, req.Color)
 	if err != nil {

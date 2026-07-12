@@ -24,12 +24,7 @@ type docRow struct {
 }
 
 func (srv *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
-	active, err := srv.store.ListDocs("", "active")
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	archived, err := srv.store.ListDocs("", "archived")
+	view, err := srv.store.IndexView()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -37,8 +32,8 @@ func (srv *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 	srv.render(w, r, "index", map[string]any{
 		"Title":    srv.repo,
 		"Repo":     srv.repo,
-		"Docs":     toDocRows(active),
-		"Archived": toDocRows(archived),
+		"Docs":     toDocRows(view.ActiveDocs),
+		"Archived": toDocRows(view.ArchivedDocs),
 	})
 }
 
@@ -99,6 +94,10 @@ func (srv *Server) wikiResolver() render.Resolver {
 	if err != nil {
 		return nil
 	}
+	return wikiResolver(resolve)
+}
+
+func wikiResolver(resolve store.CodeResolver) render.Resolver {
 	return func(raw string) (string, bool) {
 		code, kind, ok := resolve(raw)
 		if !ok {
@@ -113,7 +112,7 @@ func (srv *Server) wikiResolver() render.Resolver {
 
 func (srv *Server) handleDoc(w http.ResponseWriter, r *http.Request) {
 	code := r.PathValue("code")
-	d, err := srv.store.GetDoc(code)
+	view, err := srv.store.DocumentView(code)
 	if errors.Is(err, store.ErrNotFound) {
 		http.NotFound(w, r)
 		return
@@ -122,24 +121,14 @@ func (srv *Server) handleDoc(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	bodyHTML, err := render.RenderMarkdownLinks(d.Body, srv.wikiResolver())
+	bodyHTML, err := render.RenderMarkdownLinks(view.Doc.Body, wikiResolver(view.Resolve))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	tasks, err := srv.store.TasksForDoc(d.Code)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	related := make([]relatedTask, len(tasks))
-	for i, t := range tasks {
+	related := make([]relatedTask, len(view.Tasks))
+	for i, t := range view.Tasks {
 		related[i] = relatedTask{Task: t, ColumnName: t.Column}
-	}
-	backlinks, err := srv.store.Backlinks(d.Code)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
 	}
 	pad, err := srv.store.Scratchpad()
 	if err != nil {
@@ -152,13 +141,13 @@ func (srv *Server) handleDoc(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	srv.render(w, r, "doc", map[string]any{
-		"Title":          d.Title,
+		"Title":          view.Doc.Title,
 		"BodyClass":      "doc-page",
-		"Doc":            d,
-		"Updated":        shortDate(d.UpdatedAt),
+		"Doc":            view.Doc,
+		"Updated":        shortDate(view.Doc.UpdatedAt),
 		"Body":           template.HTML(bodyHTML),
 		"Tasks":          related,
-		"Backlinks":      backlinks,
+		"Backlinks":      view.Backlinks,
 		"DocTypes":       store.DocTypes,
 		"ScratchpadJSON": template.JS(rawPad),
 	})
@@ -167,27 +156,23 @@ func (srv *Server) handleDoc(w http.ResponseWriter, r *http.Request) {
 // taskViewData assembles the template data for a task's read view (rendered
 // body, column name, linked docs). Shared by handleTask and handleEditTask so
 // the modal can swap straight back to an up-to-date read view after a save.
-func (srv *Server) taskViewData(t store.Task) (map[string]any, error) {
-	bodyHTML, err := render.RenderMarkdownLinks(t.Body, srv.wikiResolver())
-	if err != nil {
-		return nil, err
-	}
-	docs, err := srv.store.DocsForTask(t.Code)
+func taskViewData(view store.TaskView) (map[string]any, error) {
+	bodyHTML, err := render.RenderMarkdownLinks(view.Task.Body, wikiResolver(view.Resolve))
 	if err != nil {
 		return nil, err
 	}
 	return map[string]any{
-		"Title":      t.Title,
-		"Task":       t,
-		"ColumnName": t.Column,
+		"Title":      view.Task.Title,
+		"Task":       view.Task,
+		"ColumnName": view.Task.Column,
 		"Body":       template.HTML(bodyHTML),
-		"Docs":       docs,
+		"Docs":       view.Docs,
 	}, nil
 }
 
 func (srv *Server) handleTask(w http.ResponseWriter, r *http.Request) {
 	code := r.PathValue("code")
-	t, err := srv.store.GetTask(code)
+	view, err := srv.store.TaskView(code)
 	if errors.Is(err, store.ErrNotFound) {
 		http.NotFound(w, r)
 		return
@@ -196,7 +181,7 @@ func (srv *Server) handleTask(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	data, err := srv.taskViewData(t)
+	data, err := taskViewData(view)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -462,12 +447,16 @@ func (srv *Server) handleEditTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	t, err := srv.store.EditTask(code, &title, &req.Body)
+	if _, err := srv.store.EditTask(code, &title, &req.Body); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	view, err := srv.store.TaskView(code)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	data, err := srv.taskViewData(t)
+	data, err := taskViewData(view)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

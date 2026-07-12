@@ -98,6 +98,10 @@ func (s *Store) ListDocs(docType, status string) ([]Doc, error) {
 	if err != nil {
 		return nil, err
 	}
+	return d.listDocs(docType, status)
+}
+
+func (d *data) listDocs(docType, status string) ([]Doc, error) {
 	var docs []Doc
 	for code := range d.docs {
 		doc, err := d.doc(code)

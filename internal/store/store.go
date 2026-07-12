@@ -135,9 +135,10 @@ type docEntity struct {
 }
 
 type data struct {
-	board boardFile
-	tasks map[string]*taskEntity
-	docs  map[string]*docEntity
+	board   boardFile
+	tasks   map[string]*taskEntity
+	docs    map[string]*docEntity
+	columns map[string]string
 }
 
 func (s *Store) load() (*data, error) {
@@ -236,17 +237,20 @@ func (d *data) repair() {
 		}
 		doc.meta.Tasks = kept
 	}
+	d.rebuildColumnIndex()
+}
+
+func (d *data) rebuildColumnIndex() {
+	d.columns = make(map[string]string, len(d.tasks))
+	for _, col := range d.board.Columns {
+		for _, code := range col.Tasks {
+			d.columns[code] = col.Name
+		}
+	}
 }
 
 func (d *data) columnOf(code string) string {
-	for _, c := range d.board.Columns {
-		for _, t := range c.Tasks {
-			if t == code {
-				return c.Name
-			}
-		}
-	}
-	return ""
+	return d.columns[code]
 }
 
 func (d *data) findColumn(name string) int {

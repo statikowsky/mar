@@ -57,6 +57,32 @@ func TestBoardViewIncludesLinkedDocsAndArchivedTasks(t *testing.T) {
 	}
 }
 
+func TestIndexViewSeparatesActiveAndArchivedDocs(t *testing.T) {
+	s := newTestStore(t)
+	active, err := s.CreateDoc("ACTIVE", "Active", "design", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	archived, err := s.CreateDoc("ARCHIVED", "Archived", "design", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := s.ArchiveDoc(archived.Code); err != nil {
+		t.Fatal(err)
+	}
+
+	view, err := s.IndexView()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(view.ActiveDocs) != 1 || view.ActiveDocs[0].Code != active.Code {
+		t.Errorf("active docs = %+v, want %s", view.ActiveDocs, active.Code)
+	}
+	if len(view.ArchivedDocs) != 1 || view.ArchivedDocs[0].Code != archived.Code {
+		t.Errorf("archived docs = %+v, want %s", view.ArchivedDocs, archived.Code)
+	}
+}
+
 func TestAddColumnAfter(t *testing.T) {
 	s := newTestStore(t)
 	if _, err := s.AddColumn("Review", "To do"); err != nil {
