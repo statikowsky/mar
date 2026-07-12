@@ -287,13 +287,13 @@ document.querySelectorAll("button.docact").forEach(function (btn) {
       meta.textContent = (row.note ? row.note.id + " · " : "New note · ") + anchorLabel(row.ref);
       const editor = document.createElement("textarea"); editor.className = "scratch-note-editor"; editor.value = row.text; editor.dataset.savedText = row.text.trim(); editor.placeholder = "Write a note…";
       const actions = document.createElement("div"); actions.className = "scratch-note-actions"; actions.style.display = "flex";
-      const save = document.createElement("button"); save.type = "button"; save.className = "note-action-link primary"; save.disabled = true;
+      const save = document.createElement("button"); save.type = "button"; save.className = "note-action-control note-action-link primary"; save.disabled = true;
       const saveLabel = document.createElement("span"); saveLabel.textContent = row.draft ? "Create note" : "Save changes"; save.innerHTML = window.marIcon("save"); save.append(saveLabel);
       const status = document.createElement("span"); status.className = "doc-note-status"; status.setAttribute("data-note-status", ""); status.setAttribute("role", "status");
-      const open = document.createElement("a"); open.className = "note-action-link"; open.href = row.note ? "/scratchpad?note=" + encodeURIComponent(row.note.id) : "/scratchpad"; open.innerHTML = window.marIcon("sticky-note") + "<span>Open in Scratchpad</span>";
+      const open = document.createElement("a"); open.className = "note-action-control note-action-link"; open.href = row.note ? "/scratchpad?note=" + encodeURIComponent(row.note.id) : "/scratchpad"; open.innerHTML = window.marIcon("sticky-note") + "<span>Open in Scratchpad</span>";
       actions.append(save, status, open);
       if (row.note) {
-        const remove = document.createElement("button"); remove.type = "button"; remove.className = "note-icon-button danger"; remove.setAttribute("aria-label", "Delete " + row.note.id); remove.title = "Delete note"; remove.innerHTML = window.marIcon("trash-2");
+        const remove = document.createElement("button"); remove.type = "button"; remove.className = "note-action-control note-icon-button danger"; remove.setAttribute("aria-label", "Delete " + row.note.id); remove.title = "Delete note"; remove.innerHTML = window.marIcon("trash-2");
         actions.append(remove); remove.addEventListener("click", function () { deleteRow(row, remove); });
       }
       card.append(meta, editor, actions); list.appendChild(card);

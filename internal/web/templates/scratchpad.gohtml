@@ -82,8 +82,8 @@
       : "";
   }
   function linkedDocActions(note, attribute) {
-    if (!linkedDocHref(note)) return '<button type="button" ' + attribute + '="task">Task</button><button type="button" ' + attribute + '="doc">Doc</button>';
-    return '<a class="note-action-link" href="' + linkedDocHref(note) + '" aria-label="Open ' + note.docs[0].code + '" title="Open ' + note.docs[0].code + '">' + window.marIcon("file-text") + '<span>Open document</span></a>';
+    if (!linkedDocHref(note)) return '<button type="button" class="note-action-control" ' + attribute + '="task">Task</button><button type="button" class="note-action-control" ' + attribute + '="doc">Doc</button>';
+    return '<a class="note-action-control note-action-link" href="' + linkedDocHref(note) + '" aria-label="Open ' + note.docs[0].code + '" title="Open ' + note.docs[0].code + '">' + window.marIcon("file-text") + '<span>Open document</span></a>';
   }
   function cloneNotes() { return JSON.parse(JSON.stringify(pad.notes)); }
   function checkpoint() {
@@ -143,8 +143,8 @@
       const actions = document.createElement("div");
       actions.className = "scratch-note-actions";
       const colors = COLORS.map(function (color) { return '<option value="' + color + '"' + (note.color === color ? " selected" : "") + ">" + color + "</option>"; }).join("");
-      actions.innerHTML = '<select data-note-action="color" aria-label="Color for ' + note.id + '">' + colors + "</select>" +
-        linkedDocActions(note, "data-note-action") + '<button type="button" class="note-icon-button danger" data-note-action="delete" aria-label="Delete ' + note.id + '" title="Delete note">' + window.marIcon("trash-2") + "</button>";
+      actions.innerHTML = '<select class="note-action-control note-action-select" data-note-action="color" aria-label="Color for ' + note.id + '">' + colors + "</select>" +
+        linkedDocActions(note, "data-note-action") + '<button type="button" class="note-action-control note-icon-button danger" data-note-action="delete" aria-label="Delete ' + note.id + '" title="Delete note">' + window.marIcon("trash-2") + "</button>";
       el.appendChild(actions);
       const resize = document.createElement("span");
       resize.className = "scratch-resize";
@@ -168,7 +168,7 @@
       row.dataset.id = note.id;
       const colors = COLORS.map(function (color) { return '<option value="' + color + '"' + (note.color === color ? " selected" : "") + ">" + color + "</option>"; }).join("");
       row.innerHTML = '<div><strong>' + note.id + "</strong>" + (note.link ? " · " + note.link : "") + '</div><div class="scratch-list-text">' + linkText(note.text) + "</div>" +
-        '<div><button type="button" data-list-action="edit">Edit</button><select data-list-action="color" aria-label="Color for ' + note.id + '">' + colors + '</select><button type="button" data-list-action="duplicate">Duplicate</button>' + linkedDocActions(note, "data-list-action") + '<button type="button" class="note-icon-button danger" data-list-action="delete" aria-label="Delete ' + note.id + '" title="Delete note">' + window.marIcon("trash-2") + "</button></div>";
+        '<div><button type="button" class="note-action-control" data-list-action="edit">Edit</button><select class="note-action-control note-action-select" data-list-action="color" aria-label="Color for ' + note.id + '">' + colors + '</select><button type="button" class="note-action-control" data-list-action="duplicate">Duplicate</button>' + linkedDocActions(note, "data-list-action") + '<button type="button" class="note-action-control note-icon-button danger" data-list-action="delete" aria-label="Delete ' + note.id + '" title="Delete note">' + window.marIcon("trash-2") + "</button></div>";
       listItems.appendChild(row);
     });
     if (!pad.notes.length) listItems.innerHTML = '<p class="scratch-empty">Double-click the canvas or choose Add note to capture an idea.</p>';

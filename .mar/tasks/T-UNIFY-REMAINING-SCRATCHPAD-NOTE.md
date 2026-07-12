@@ -2,7 +2,7 @@
 title: Unify remaining Scratchpad note controls
 status: active
 created: "2026-07-12T16:41:19.281021Z"
-updated: "2026-07-12T16:41:19.281021Z"
+updated: "2026-07-12T16:51:10.554689Z"
 ---
 ## Confirmed mismatches
 

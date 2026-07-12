@@ -119,9 +119,15 @@ func TestScratchpadPageAndIndexLink(t *testing.T) {
 	if code != http.StatusOK {
 		t.Fatalf("status = %d", code)
 	}
-	for _, want := range []string{`<body class="scratch-page">`, `id="scratch-surface"`, `window.SCRATCHPAD_STATE`, `aria-label="Scratchpad notes"`, `new URLSearchParams(location.search).get("note")`, `linkedDocHref(note)`, `"?note=" + encodeURIComponent(note.id)`, `scratch-drag-handle`, `data-note-action="delete"`, `note-action-link`, `window.marIcon("file-text")`} {
+	for _, want := range []string{`<body class="scratch-page">`, `id="scratch-surface"`, `window.SCRATCHPAD_STATE`, `aria-label="Scratchpad notes"`, `new URLSearchParams(location.search).get("note")`, `linkedDocHref(note)`, `"?note=" + encodeURIComponent(note.id)`, `scratch-drag-handle`, `data-note-action="delete"`, `note-action-control`, `note-action-select`, `note-action-link`, `window.marIcon("file-text")`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("scratchpad page missing %q:\n%s", want, body)
+		}
+	}
+	_, css := get(t, srv.URL+"/static/style.css")
+	for _, want := range []string{`.note-action-control`, `height: 28px`, `.note-action-select`, `.note-action-control:focus-visible`, `.note-action-control:disabled`, `.scratch-list-row .note-icon-button`, `box-sizing: border-box`} {
+		if !strings.Contains(css, want) {
+			t.Errorf("note action styles missing %q", want)
 		}
 	}
 	_, index := get(t, srv.URL+"/")
