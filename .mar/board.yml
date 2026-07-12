@@ -6,10 +6,12 @@ columns:
         - T-NORMALIZE-EXPLICIT-DATE-TIMESTAMP
         - T-UPGRADE-GITHUB-ACTIONS-OFF
         - T-MAKE-SCRATCHPAD-CONFLICT-OVERWRITE
+        - T-MAKE-SYNTAX-HIGHLIGHTING-FOLLOW
     - name: In progress
       tasks: []
     - name: Done
       tasks:
+        - T-UNIFY-NOTE-CONTROLS-ACROSS
         - T-PLACE-DOCUMENT-NOTES-BESIDE
         - T-RETURN-FROM-SCRATCHPAD-TO
         - T-POSITION-DOCUMENT-NOTES-AT

@@ -284,8 +284,13 @@ document.querySelectorAll("button.docact").forEach(function (btn) {
       const editor = document.createElement("textarea"); editor.className = "scratch-note-editor"; editor.value = row.text; editor.placeholder = "Write a note…";
       const actions = document.createElement("div"); actions.className = "scratch-note-actions"; actions.style.display = "flex";
       const save = document.createElement("button"); save.type = "button"; save.textContent = "Save";
-      const open = document.createElement("a"); open.href = row.note ? "/scratchpad?note=" + encodeURIComponent(row.note.id) : "/scratchpad"; open.textContent = "Open in Scratchpad";
-      actions.append(save, open); card.append(meta, editor, actions); list.appendChild(card);
+      const open = document.createElement("a"); open.className = "note-action-link"; open.href = row.note ? "/scratchpad?note=" + encodeURIComponent(row.note.id) : "/scratchpad"; open.innerHTML = window.marIcon("sticky-note") + "<span>Open in Scratchpad</span>";
+      actions.append(save, open);
+      if (row.note) {
+        const remove = document.createElement("button"); remove.type = "button"; remove.className = "note-icon-button danger"; remove.setAttribute("aria-label", "Delete " + row.note.id); remove.title = "Delete note"; remove.innerHTML = window.marIcon("trash-2");
+        actions.append(remove); remove.addEventListener("click", function () { deleteRow(row, remove); });
+      }
+      card.append(meta, editor, actions); list.appendChild(card);
       save.addEventListener("click", function () { saveRow(row, editor.value, save); });
       editor.addEventListener("keydown", function (event) {
         if ((event.metaKey || event.ctrlKey) && event.key === "Enter") { event.preventDefault(); save.click(); }
@@ -331,6 +336,16 @@ document.querySelectorAll("button.docact").forEach(function (btn) {
       }
       renderNotes();
     } catch (error) { live.textContent = "Note save failed"; alert(error.message || "Note save failed"); button.disabled = false; }
+  }
+  async function deleteRow(row, button) {
+    if (!row.note || !confirm("Delete " + row.note.id + "?")) return;
+    button.disabled = true;
+    try {
+      const notes = pad.notes.filter(function (note) { return note.id !== row.note.id; });
+      const resp = await fetch("/scratchpad", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ revision: pad.revision, notes: notes }) });
+      if (!resp.ok) throw new Error(await resp.text());
+      Object.assign(pad, await resp.json()); live.textContent = "Note deleted"; renderNotes();
+    } catch (error) { live.textContent = "Note delete failed"; alert(error.message || "Note delete failed"); button.disabled = false; }
   }
   function newDraft(anchor) { draft = { code: code, anchor: anchor || null }; openRail(false); renderNotes(); }
   toggle.addEventListener("click", function () { rail.hidden ? openRail(true) : closeRail(); });

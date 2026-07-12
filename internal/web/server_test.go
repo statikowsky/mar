@@ -119,7 +119,7 @@ func TestScratchpadPageAndIndexLink(t *testing.T) {
 	if code != http.StatusOK {
 		t.Fatalf("status = %d", code)
 	}
-	for _, want := range []string{`<body class="scratch-page">`, `id="scratch-surface"`, `window.SCRATCHPAD_STATE`, `aria-label="Scratchpad notes"`, `new URLSearchParams(location.search).get("note")`, `linkedDocHref(note)`, `"?note=" + encodeURIComponent(note.id)`} {
+	for _, want := range []string{`<body class="scratch-page">`, `id="scratch-surface"`, `window.SCRATCHPAD_STATE`, `aria-label="Scratchpad notes"`, `new URLSearchParams(location.search).get("note")`, `linkedDocHref(note)`, `"?note=" + encodeURIComponent(note.id)`, `scratch-drag-handle`, `data-note-action="delete"`, `note-action-link`, `window.marIcon("file-text")`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("scratchpad page missing %q:\n%s", want, body)
 		}
@@ -165,7 +165,7 @@ func TestDocumentPageIncludesAnchoredNotesRail(t *testing.T) {
 	if code != http.StatusOK {
 		t.Fatalf("status = %d", code)
 	}
-	for _, want := range []string{`class="doc-annotation-gutter"`, `data-tooltip="Create note"`, `id="doc-notes-rail"`, `data-doc-code="DOC-ANNOTATED"`, `if (associated().length) openRail(false)`, `positionNotes()`, `positionNotesRail()`, `gutter.getBoundingClientRect().right`, `--doc-notes-left`, `new URLSearchParams(location.search).get("note")`, `scrollIntoView({ behavior: "smooth", block: "center" })`, `doc-note-target`} {
+	for _, want := range []string{`class="doc-annotation-gutter"`, `data-tooltip="Create note"`, `id="doc-notes-rail"`, `data-doc-code="DOC-ANNOTATED"`, `if (associated().length) openRail(false)`, `positionNotes()`, `positionNotesRail()`, `gutter.getBoundingClientRect().right`, `--doc-notes-left`, `new URLSearchParams(location.search).get("note")`, `scrollIntoView({ behavior: "smooth", block: "center" })`, `doc-note-target`, `note-action-link`, `note-icon-button danger`, `window.marIcon("sticky-note")`, `deleteRow(row`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("document page missing %q", want)
 		}
