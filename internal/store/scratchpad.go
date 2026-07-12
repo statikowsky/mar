@@ -54,8 +54,9 @@ type ScratchDocRef struct {
 }
 
 type ScratchAnchor struct {
-	Block string `json:"block" yaml:"block"`
-	Quote string `json:"quote,omitempty" yaml:"quote,omitempty"`
+	Block  string `json:"block" yaml:"block"`
+	Quote  string `json:"quote,omitempty" yaml:"quote,omitempty"`
+	Offset int    `json:"offset,omitempty" yaml:"offset,omitempty"`
 }
 
 type Scratchpad struct {

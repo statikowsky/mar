@@ -35,12 +35,12 @@ func TestScratchpadVersionOneMigratesAnchoredDocumentAssociations(t *testing.T) 
 	if pad.Schema != 1 || len(pad.Notes) != 1 || len(pad.Notes[0].Docs) != 0 {
 		t.Fatalf("pad = %+v", pad)
 	}
-	pad.Notes[0].Docs = []ScratchDocRef{{Code: "DOC-GUIDE", Anchor: &ScratchAnchor{Block: "setup-2", Quote: "Install mar"}}}
+	pad.Notes[0].Docs = []ScratchDocRef{{Code: "DOC-GUIDE", Anchor: &ScratchAnchor{Block: "setup-2", Quote: "Install mar", Offset: 37}}}
 	updated, err := s.SaveScratchpad(pad.Revision, pad.Notes)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if updated.Schema != 2 || updated.Notes[0].Docs[0].Anchor.Quote != "Install mar" {
+	if updated.Schema != 2 || updated.Notes[0].Docs[0].Anchor.Quote != "Install mar" || updated.Notes[0].Docs[0].Anchor.Offset != 37 {
 		t.Fatalf("updated = %+v", updated)
 	}
 }

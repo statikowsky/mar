@@ -165,7 +165,7 @@ func TestDocumentPageIncludesAnchoredNotesRail(t *testing.T) {
 	if code != http.StatusOK {
 		t.Fatalf("status = %d", code)
 	}
-	for _, want := range []string{`class="doc-annotation-gutter"`, `id="doc-notes-rail"`, `data-doc-code="DOC-ANNOTATED"`, `if (associated().length) openRail(false)`} {
+	for _, want := range []string{`class="doc-annotation-gutter"`, `data-tooltip="Create note"`, `id="doc-notes-rail"`, `data-doc-code="DOC-ANNOTATED"`, `if (associated().length) openRail(false)`, `positionNotes()`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("document page missing %q", want)
 		}

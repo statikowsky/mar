@@ -52,10 +52,9 @@
 </ul>
 {{end}}
 </main>
-<button type="button" class="doc-annotation-gutter" aria-label="Add a note at this document position" title="Add note here"></button>
+<button type="button" class="doc-annotation-gutter" aria-label="Create note at this document position" data-tooltip="Create note"></button>
 <aside id="doc-notes-rail" class="doc-notes-rail" data-doc-code="{{.Doc.Code}}" aria-label="Notes for {{.Doc.Code}}" hidden>
-  <div class="doc-notes-head"><h2 tabindex="-1">Notes</h2><button type="button" class="docact" data-notes-close>Close</button></div>
-  <button type="button" class="docact" data-notes-add>Add note</button>
+  <div class="doc-notes-head"><h2 tabindex="-1">Notes</h2><div><button type="button" class="docact" data-notes-add>Add note</button> <button type="button" class="docact" data-notes-close>Close</button></div></div>
   <p class="doc-notes-empty">No notes for this document yet.</p>
   <div class="doc-notes-list"></div>
   <p class="sr-only" aria-live="polite" data-notes-live></p>
@@ -245,6 +244,7 @@ document.querySelectorAll("button.docact").forEach(function (btn) {
     toggle.setAttribute("aria-expanded", "true");
     try { localStorage.setItem(storageKey, "open"); } catch (_) {}
     if (focus) rail.querySelector("h2").focus();
+    requestAnimationFrame(positionNotes);
   }
   function closeRail() {
     rail.hidden = true;
@@ -268,6 +268,7 @@ document.querySelectorAll("button.docact").forEach(function (btn) {
     rows.forEach(function (row) {
       const card = document.createElement("section");
       card.className = "doc-note-card color-" + (row.note ? row.note.color : "neutral");
+      card._noteRef = row.ref;
       const meta = document.createElement("p"); meta.className = "scratch-note-meta";
       meta.textContent = (row.note ? row.note.id + " · " : "New note · ") + anchorLabel(row.ref);
       const editor = document.createElement("textarea"); editor.className = "scratch-note-editor"; editor.value = row.text; editor.placeholder = "Write a note…";
@@ -281,6 +282,26 @@ document.querySelectorAll("button.docact").forEach(function (btn) {
         if (event.key === "Escape" && row.draft) { draft = null; renderNotes(); gutter.focus(); }
       });
       if (row.draft) requestAnimationFrame(function () { editor.focus(); });
+    });
+    requestAnimationFrame(positionNotes);
+  }
+  function positionNotes() {
+    if (rail.hidden) return;
+    const cards = Array.from(list.querySelectorAll(".doc-note-card")).map(function (card) {
+      const anchor = card._noteRef && card._noteRef.anchor;
+      const block = anchor && blocks.find(function (el) { return el.dataset.noteBlock === anchor.block; });
+      const top = block ? block.getBoundingClientRect().top + (anchor.offset || 0) : 88;
+      return { card: card, top: top };
+    }).sort(function (a, b) { return a.top - b.top; });
+    let nextTop = 76;
+    cards.forEach(function (item) {
+      const height = item.card.offsetHeight;
+      const visible = item.top > -height && item.top < window.innerHeight;
+      item.card.hidden = !visible;
+      if (!visible) return;
+      const top = Math.max(nextTop, Math.min(item.top, window.innerHeight - height - 12));
+      item.card.style.top = top + "px";
+      nextTop = top + height + 10;
     });
   }
   async function saveRow(row, text, button) {
@@ -309,8 +330,14 @@ document.querySelectorAll("button.docact").forEach(function (btn) {
     let nearest = blocks[0], distance = Infinity;
     blocks.forEach(function (el) { const box = el.getBoundingClientRect(); const d = Math.abs(event.clientY - Math.max(box.top, Math.min(event.clientY, box.bottom))); if (d < distance) { distance = d; nearest = el; } });
     if (!nearest) return newDraft(null);
-    newDraft({ block: nearest.dataset.noteBlock, quote: nearest.textContent.trim().replace(/\s+/g, " ").slice(0, 160) });
+    const box = nearest.getBoundingClientRect();
+    newDraft({ block: nearest.dataset.noteBlock, quote: nearest.textContent.trim().replace(/\s+/g, " ").slice(0, 160), offset: Math.round(event.clientY - box.top) });
   });
+  gutter.addEventListener("pointermove", function (event) { gutter.style.setProperty("--tooltip-y", event.offsetY + "px"); });
+  let notePositionFrame = null;
+  function scheduleNotePositions() { if (!notePositionFrame) notePositionFrame = requestAnimationFrame(function () { notePositionFrame = null; positionNotes(); }); }
+  window.addEventListener("scroll", scheduleNotePositions, { passive: true });
+  window.addEventListener("resize", scheduleNotePositions);
   document.addEventListener("keydown", function (event) { if (event.key === "Escape" && !rail.hidden && !draft) closeRail(); });
   renderNotes();
   if (associated().length) openRail(false);
