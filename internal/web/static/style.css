@@ -405,6 +405,12 @@ body.doc-page { max-width: 1270px; }
 .doc-note-card.color-yellow { background: var(--warn-soft); }
 .doc-note-card.color-red { background: var(--danger-soft); }
 .doc-note-card.color-purple { background: var(--tag-analysis-bg); }
+.rendered-body > .doc-note-target, .doc-note-card.doc-note-target {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+  background-color: var(--accent-soft);
+  transition: background-color 0.2s ease, outline-color 0.2s ease;
+}
 .doc-notes-empty { color: var(--muted); font-size: 13px; }
 .doc-outline {
   align-self: start;

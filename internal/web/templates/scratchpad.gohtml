@@ -76,7 +76,11 @@
     return { x: Math.round((clientX - box.left - view.x) / view.scale), y: Math.round((clientY - box.top - view.y) / view.scale) };
   }
   function noteByID(id) { return pad.notes.find(function (note) { return note.id === id; }); }
-  function linkedDocHref(note) { return note.docs && note.docs.length ? "/doc/" + encodeURIComponent(note.docs[0].code) : ""; }
+  function linkedDocHref(note) {
+    return note.docs && note.docs.length
+      ? "/doc/" + encodeURIComponent(note.docs[0].code) + "?note=" + encodeURIComponent(note.id)
+      : "";
+  }
   function linkedDocActions(note, attribute) {
     if (!linkedDocHref(note)) return '<button type="button" ' + attribute + '="task">Task</button><button type="button" ' + attribute + '="doc">Doc</button>';
     return '<a class="scratch-doc-link" href="' + linkedDocHref(note) + '">&larr; Back to ' + note.docs[0].code + "</a>";

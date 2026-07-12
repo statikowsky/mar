@@ -268,6 +268,7 @@ document.querySelectorAll("button.docact").forEach(function (btn) {
     rows.forEach(function (row) {
       const card = document.createElement("section");
       card.className = "doc-note-card color-" + (row.note ? row.note.color : "neutral");
+      if (row.note) card.dataset.noteId = row.note.id;
       card._noteRef = row.ref;
       const meta = document.createElement("p"); meta.className = "scratch-note-meta";
       meta.textContent = (row.note ? row.note.id + " · " : "New note · ") + anchorLabel(row.ref);
@@ -342,6 +343,25 @@ document.querySelectorAll("button.docact").forEach(function (btn) {
   renderNotes();
   if (associated().length) openRail(false);
   else try { if (localStorage.getItem(storageKey) === "open") openRail(false); } catch (_) {}
+
+  const targetID = new URLSearchParams(location.search).get("note");
+  const targetNote = targetID && associated().find(function (note) { return note.id === targetID; });
+  if (targetNote) {
+    const ref = refFor(targetNote);
+    const targetBlock = ref && ref.anchor && blocks.find(function (el) { return el.dataset.noteBlock === ref.anchor.block; });
+    const targetCard = list.querySelector('[data-note-id="' + CSS.escape(targetNote.id) + '"]');
+    if (targetBlock) {
+      targetBlock.classList.add("doc-note-target");
+      requestAnimationFrame(function () {
+        targetBlock.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+      setTimeout(function () { targetBlock.classList.remove("doc-note-target"); }, 2400);
+    }
+    if (targetCard) {
+      targetCard.classList.add("doc-note-target");
+      setTimeout(function () { targetCard.classList.remove("doc-note-target"); }, 2400);
+    }
+  }
 })();
 </script>
 {{end}}
