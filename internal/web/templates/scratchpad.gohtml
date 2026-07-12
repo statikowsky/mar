@@ -58,6 +58,7 @@
   let spaceDown = false;
   let gesture = null;
   let lastNoteClick = null;
+  let viewSaveTimer = null;
   let view = loadView();
 
   function loadView() {
@@ -69,6 +70,21 @@
   }
   function saveView() {
     try { localStorage.setItem("mar-scratch-view", JSON.stringify(view)); } catch (e) { /* ignore */ }
+  }
+  function scheduleViewSave() {
+    clearTimeout(viewSaveTimer);
+    viewSaveTimer = setTimeout(saveView, 120);
+  }
+  function applyViewTransform() { plane.style.transform = "translate(" + view.x + "px," + view.y + "px) scale(" + view.scale + ")"; }
+  function normalizeWheelDelta(e) {
+    const factor = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? surface.clientHeight : 1;
+    return { x: e.deltaX * factor, y: e.deltaY * factor };
+  }
+  function isDiscreteWheel(e) {
+    if (e.deltaMode !== 0) return true;
+    const legacy = Math.abs(e.wheelDeltaY || e.wheelDelta || 0);
+    if (legacy >= 120 && legacy % 120 === 0) return true;
+    return false;
   }
   function clampScale(value) { return Math.max(0.25, Math.min(2.5, value)); }
   function screenToWorld(clientX, clientY) {
@@ -345,7 +361,7 @@
     view.x = sx - wx * scale;
     view.y = sy - wy * scale;
     view.scale = scale;
-    saveView(); render();
+    applyViewTransform(); updateToolbar(); scheduleViewSave();
   }
   function fitAll() {
     if (!pad.notes.length) { view = { x: 80, y: 60, scale: 1 }; saveView(); render(); return; }
@@ -418,7 +434,7 @@
     const dx = e.clientX - gesture.startX;
     const dy = e.clientY - gesture.startY;
     if (gesture.type === "pan") {
-      view.x = gesture.viewX + dx; view.y = gesture.viewY + dy; plane.style.transform = "translate(" + view.x + "px," + view.y + "px) scale(" + view.scale + ")";
+      view.x = gesture.viewX + dx; view.y = gesture.viewY + dy; applyViewTransform();
     } else if (gesture.type === "move") {
       selected.forEach(function (id) { const note = noteByID(id); note.x = Math.round(gesture.starts[id].x + dx / view.scale); note.y = Math.round(gesture.starts[id].y + dy / view.scale); });
       render();
@@ -455,8 +471,18 @@
   });
   surface.addEventListener("wheel", function (e) {
     e.preventDefault();
-    if (e.ctrlKey || e.metaKey) setZoom(view.scale * Math.exp(-e.deltaY * 0.002), e.clientX, e.clientY);
-    else { view.x -= e.deltaX; view.y -= e.deltaY; saveView(); render(); }
+    const delta = normalizeWheelDelta(e);
+    const pinch = e.ctrlKey || e.metaKey;
+    const discrete = isDiscreteWheel(e);
+    const horizontalMousePan = e.shiftKey && !pinch && discrete;
+    if (pinch || (discrete && !horizontalMousePan)) {
+      const amount = Math.max(-240, Math.min(240, delta.y));
+      setZoom(view.scale * Math.exp(-amount * 0.0025), e.clientX, e.clientY);
+      return;
+    }
+    const panX = horizontalMousePan ? delta.y : delta.x;
+    const panY = horizontalMousePan ? 0 : delta.y;
+    view.x -= panX; view.y -= panY; applyViewTransform(); scheduleViewSave();
   }, { passive: false });
   plane.addEventListener("dblclick", function (e) { const note = e.target.closest(".scratch-note"); if (note) { e.stopPropagation(); startEdit(note.dataset.id); } });
   plane.addEventListener("change", function (e) {

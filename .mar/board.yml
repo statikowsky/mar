@@ -11,6 +11,7 @@ columns:
       tasks: []
     - name: Done
       tasks:
+        - T-IMPROVE-SCRATCHPAD-MOUSE-AND
         - T-ADD-CONSISTENT-ICONS-TO
         - T-SHOW-ICON-ON-DOCUMENT
         - T-CLARIFY-SCRATCHPAD-NOTE-ACTIONS
