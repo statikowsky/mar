@@ -11,6 +11,7 @@ columns:
       tasks: []
     - name: Done
       tasks:
+        - T-SHOW-ICON-ON-DOCUMENT
         - T-CLARIFY-SCRATCHPAD-NOTE-ACTIONS
         - T-UNIFY-REMAINING-SCRATCHPAD-NOTE
         - T-CLARIFY-DOCUMENT-NOTE-SAVE
