@@ -7,6 +7,7 @@ columns:
         - T-UPGRADE-GITHUB-ACTIONS-OFF
         - T-MAKE-SCRATCHPAD-CONFLICT-OVERWRITE
         - T-MAKE-SYNTAX-HIGHLIGHTING-FOLLOW
+        - T-UNIFY-REMAINING-SCRATCHPAD-NOTE
     - name: In progress
       tasks: []
     - name: Done
