@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 )
 
 type BoardColumn struct {
@@ -12,11 +13,39 @@ type BoardColumn struct {
 	Tasks []Task `json:"tasks"`
 }
 
+// BoardView contains all data rendered on the board page from one store
+// snapshot.
+type BoardView struct {
+	Columns        []BoardColumn
+	ArchivedTasks  []Task
+	DocCodesByTask map[string][]string
+}
+
 func (s *Store) Board() ([]BoardColumn, error) {
 	d, err := s.load()
 	if err != nil {
 		return nil, err
 	}
+	return d.boardColumns()
+}
+
+func (s *Store) BoardView() (BoardView, error) {
+	d, err := s.load()
+	if err != nil {
+		return BoardView{}, err
+	}
+	columns, err := d.boardColumns()
+	if err != nil {
+		return BoardView{}, err
+	}
+	archivedTasks, err := d.archivedTasks()
+	if err != nil {
+		return BoardView{}, err
+	}
+	return BoardView{Columns: columns, ArchivedTasks: archivedTasks, DocCodesByTask: d.docCodesByTask()}, nil
+}
+
+func (d *data) boardColumns() ([]BoardColumn, error) {
 	board := make([]BoardColumn, len(d.board.Columns))
 	for i, c := range d.board.Columns {
 		bc := BoardColumn{Column: Column{Name: c.Name}}
@@ -34,6 +63,35 @@ func (s *Store) Board() ([]BoardColumn, error) {
 		board[i] = bc
 	}
 	return board, nil
+}
+
+func (d *data) archivedTasks() ([]Task, error) {
+	var tasks []Task
+	for _, c := range d.board.Columns {
+		for _, code := range c.Tasks {
+			t, err := d.task(code)
+			if err != nil {
+				return nil, err
+			}
+			if t.Status == "archived" {
+				tasks = append(tasks, t)
+			}
+		}
+	}
+	return tasks, nil
+}
+
+func (d *data) docCodesByTask() map[string][]string {
+	codesByTask := make(map[string][]string)
+	for docCode, doc := range d.docs {
+		for _, taskCode := range doc.meta.Tasks {
+			codesByTask[taskCode] = append(codesByTask[taskCode], docCode)
+		}
+	}
+	for taskCode := range codesByTask {
+		sort.Strings(codesByTask[taskCode])
+	}
+	return codesByTask
 }
 
 func (s *Store) ListColumns() ([]Column, error) {

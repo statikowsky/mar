@@ -6,6 +6,7 @@ type Interface interface {
 	Close() error
 	DataVersion() (int64, error)
 	Board() ([]BoardColumn, error)
+	BoardView() (BoardView, error)
 	ListColumns() ([]Column, error)
 	AddColumn(name, afterName string) (Column, error)
 	AddColumnBefore(name, beforeName string) (Column, error)

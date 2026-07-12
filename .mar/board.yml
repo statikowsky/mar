@@ -7,11 +7,11 @@ columns:
         - T-UPGRADE-GITHUB-ACTIONS-OFF
         - T-MAKE-SCRATCHPAD-CONFLICT-OVERWRITE
         - T-MAKE-SYNTAX-HIGHLIGHTING-FOLLOW
-        - T-ELIMINATE-N-1-FILE
     - name: In progress
       tasks: []
     - name: Done
       tasks:
+        - T-ELIMINATE-N-1-FILE
         - T-ADD-SCROLL-FOLLOWING-DOCUMENT
         - T-SHOW-NOTE-SAVE-KEYBOARD
         - T-IMPROVE-SCRATCHPAD-MOUSE-AND

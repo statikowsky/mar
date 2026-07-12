@@ -61,32 +61,22 @@ type boardColumnView struct {
 }
 
 func (srv *Server) handleBoard(w http.ResponseWriter, r *http.Request) {
-	board, err := srv.store.Board()
+	view, err := srv.store.BoardView()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	cols := make([]boardColumnView, len(board))
-	for i, bc := range board {
+	cols := make([]boardColumnView, len(view.Columns))
+	for i, bc := range view.Columns {
 		tasks := make([]boardTask, len(bc.Tasks))
 		for j, tk := range bc.Tasks {
-			codes, err := srv.store.DocCodesForTask(tk.Code)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-			tasks[j] = boardTask{Task: tk, DocCodes: codes}
+			tasks[j] = boardTask{Task: tk, DocCodes: view.DocCodesByTask[tk.Code]}
 		}
 		cols[i] = boardColumnView{Name: bc.Name, Tasks: tasks}
 	}
 
-	archivedTasks, err := srv.store.ArchivedTasks()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	archived := make([]relatedTask, len(archivedTasks))
-	for i, tk := range archivedTasks {
+	archived := make([]relatedTask, len(view.ArchivedTasks))
+	for i, tk := range view.ArchivedTasks {
 		archived[i] = relatedTask{Task: tk, ColumnName: tk.Column}
 	}
 

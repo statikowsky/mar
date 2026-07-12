@@ -22,6 +22,41 @@ func TestAddColumnAtEnd(t *testing.T) {
 	}
 }
 
+func TestBoardViewIncludesLinkedDocsAndArchivedTasks(t *testing.T) {
+	s := newTestStore(t)
+	active, err := s.CreateTaskWithCode("ACTIVE", "Active", "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	archived, err := s.CreateTaskWithCode("ARCHIVED", "Archived", "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.CreateDoc("PLAN", "Plan", "design", ""); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Link("DOC-PLAN", active.Code); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.ArchiveTask(archived.Code); err != nil {
+		t.Fatal(err)
+	}
+
+	view, err := s.BoardView()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(view.Columns) == 0 || len(view.Columns[0].Tasks) != 1 || view.Columns[0].Tasks[0].Code != active.Code {
+		t.Fatalf("active board tasks = %+v, want %s", view.Columns, active.Code)
+	}
+	if got := view.DocCodesByTask[active.Code]; !eqStr(got, []string{"DOC-PLAN"}) {
+		t.Errorf("linked docs = %v, want [DOC-PLAN]", got)
+	}
+	if len(view.ArchivedTasks) != 1 || view.ArchivedTasks[0].Code != archived.Code {
+		t.Errorf("archived tasks = %+v, want %s", view.ArchivedTasks, archived.Code)
+	}
+}
+
 func TestAddColumnAfter(t *testing.T) {
 	s := newTestStore(t)
 	if _, err := s.AddColumn("Review", "To do"); err != nil {
