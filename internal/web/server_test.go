@@ -165,7 +165,7 @@ func TestDocumentPageIncludesAnchoredNotesRail(t *testing.T) {
 	if code != http.StatusOK {
 		t.Fatalf("status = %d", code)
 	}
-	for _, want := range []string{`class="doc-annotation-gutter"`, `data-tooltip="Create note"`, `id="doc-notes-rail"`, `data-doc-code="DOC-ANNOTATED"`, `if (associated().length) openRail(false)`, `positionNotes()`, `positionNotesRail()`, `gutter.getBoundingClientRect().right`, `--doc-notes-left`, `new URLSearchParams(location.search).get("note")`, `scrollIntoView({ behavior: "smooth", block: "center" })`, `doc-note-target`, `note-action-link`, `note-icon-button danger`, `window.marIcon("sticky-note")`, `deleteRow(row`} {
+	for _, want := range []string{`class="doc-annotation-gutter"`, `data-tooltip="Create note"`, `id="doc-notes-rail"`, `data-doc-code="DOC-ANNOTATED"`, `if (associated().length) openRail(false)`, `positionNotes()`, `positionNotesRail()`, `gutter.getBoundingClientRect().right`, `--doc-notes-left`, `new URLSearchParams(location.search).get("note")`, `scrollIntoView({ behavior: "smooth", block: "center" })`, `doc-note-target`, `note-action-link`, `note-icon-button danger`, `window.marIcon("sticky-note")`, `window.marIcon("save")`, `Save changes`, `Create note`, `Saving…`, `data-note-status`, `hasDirtyNotes()`, `Discard unsaved note changes?`, `beforeunload`, `deleteRow(row`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("document page missing %q", want)
 		}

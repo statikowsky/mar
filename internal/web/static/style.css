@@ -911,6 +911,10 @@ body.scratch-page .project-path { flex: 0 0 auto; align-self: flex-start; margin
 }
 .note-action-link:hover, .note-icon-button:hover { background: var(--btn-bg-hover); color: var(--fg); }
 .note-action-link:focus-visible, .note-icon-button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.note-action-link.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.note-action-link.primary:hover:not(:disabled) { filter: brightness(1.08); }
+.note-action-link:disabled { opacity: 0.5; cursor: default; }
+.doc-note-status { color: var(--danger); font: 600 11px/1.2 var(--ui-font); }
 .note-icon-button { width: 28px; padding: 4px; margin-left: auto; }
 .note-icon-button.danger { color: var(--danger); }
 .note-icon-button.danger:hover { background: var(--danger-soft); }

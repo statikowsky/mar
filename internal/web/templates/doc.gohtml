@@ -228,6 +228,9 @@ document.querySelectorAll("button.docact").forEach(function (btn) {
   const storageKey = "mar:doc-notes:" + location.pathname;
   let draft = null;
 
+  function hasDirtyNotes() { return Array.from(list.querySelectorAll(".scratch-note-editor")).some(function (editor) { return editor.value.trim() !== editor.dataset.savedText; }); }
+  function confirmDiscardNotes() { return !hasDirtyNotes() || confirm("Discard unsaved note changes?"); }
+
   let heading = "document";
   let ordinal = 0;
   const blocks = Array.from(body.children).filter(function (el) { return !/^(SCRIPT|STYLE)$/.test(el.tagName); });
@@ -256,6 +259,7 @@ document.querySelectorAll("button.docact").forEach(function (btn) {
     requestAnimationFrame(positionNotes);
   }
   function closeRail() {
+    if (!confirmDiscardNotes()) return;
     rail.hidden = true;
     toggle.setAttribute("aria-expanded", "false");
     draft = null;
@@ -281,20 +285,25 @@ document.querySelectorAll("button.docact").forEach(function (btn) {
       card._noteRef = row.ref;
       const meta = document.createElement("p"); meta.className = "scratch-note-meta";
       meta.textContent = (row.note ? row.note.id + " · " : "New note · ") + anchorLabel(row.ref);
-      const editor = document.createElement("textarea"); editor.className = "scratch-note-editor"; editor.value = row.text; editor.placeholder = "Write a note…";
+      const editor = document.createElement("textarea"); editor.className = "scratch-note-editor"; editor.value = row.text; editor.dataset.savedText = row.text.trim(); editor.placeholder = "Write a note…";
       const actions = document.createElement("div"); actions.className = "scratch-note-actions"; actions.style.display = "flex";
-      const save = document.createElement("button"); save.type = "button"; save.textContent = "Save";
+      const save = document.createElement("button"); save.type = "button"; save.className = "note-action-link primary"; save.disabled = true;
+      const saveLabel = document.createElement("span"); saveLabel.textContent = row.draft ? "Create note" : "Save changes"; save.innerHTML = window.marIcon("save"); save.append(saveLabel);
+      const status = document.createElement("span"); status.className = "doc-note-status"; status.setAttribute("data-note-status", ""); status.setAttribute("role", "status");
       const open = document.createElement("a"); open.className = "note-action-link"; open.href = row.note ? "/scratchpad?note=" + encodeURIComponent(row.note.id) : "/scratchpad"; open.innerHTML = window.marIcon("sticky-note") + "<span>Open in Scratchpad</span>";
-      actions.append(save, open);
+      actions.append(save, status, open);
       if (row.note) {
         const remove = document.createElement("button"); remove.type = "button"; remove.className = "note-icon-button danger"; remove.setAttribute("aria-label", "Delete " + row.note.id); remove.title = "Delete note"; remove.innerHTML = window.marIcon("trash-2");
         actions.append(remove); remove.addEventListener("click", function () { deleteRow(row, remove); });
       }
       card.append(meta, editor, actions); list.appendChild(card);
-      save.addEventListener("click", function () { saveRow(row, editor.value, save); });
+      function updateSaveState() { save.disabled = editor.value.trim() === editor.dataset.savedText || (row.draft && !editor.value.trim()); status.textContent = ""; }
+      save.addEventListener("click", function () { saveRow(row, editor, save, saveLabel, status); });
+      editor.addEventListener("input", updateSaveState);
+      open.addEventListener("click", function (event) { if (!confirmDiscardNotes()) event.preventDefault(); });
       editor.addEventListener("keydown", function (event) {
         if ((event.metaKey || event.ctrlKey) && event.key === "Enter") { event.preventDefault(); save.click(); }
-        if (event.key === "Escape" && row.draft) { draft = null; renderNotes(); gutter.focus(); }
+        if (event.key === "Escape" && row.draft && confirmDiscardNotes()) { draft = null; renderNotes(); gutter.focus(); }
       });
       if (row.draft) requestAnimationFrame(function () { editor.focus(); });
     });
@@ -319,26 +328,30 @@ document.querySelectorAll("button.docact").forEach(function (btn) {
       nextTop = top + height + 10;
     });
   }
-  async function saveRow(row, text, button) {
-    text = text.trim();
-    if (!text) { if (row.draft) { draft = null; renderNotes(); } return; }
+  async function saveRow(row, editor, button, label, status) {
+    const text = editor.value.trim();
+    if (!text || button.disabled) return;
     button.disabled = true;
+    label.textContent = "Saving…";
+    status.textContent = "";
     try {
       if (row.draft) {
         const resp = await fetch("/scratchpad/note", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: text, docs: [{ code: code, anchor: row.ref.anchor || undefined }] }) });
         if (!resp.ok) throw new Error(await resp.text());
         Object.assign(pad, await resp.json()); draft = null; live.textContent = "Note created";
       } else {
-        row.note.text = text;
-        const resp = await fetch("/scratchpad", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ revision: pad.revision, notes: pad.notes }) });
+        const notes = pad.notes.map(function (note) { return note.id === row.note.id ? Object.assign({}, note, { text: text }) : note; });
+        const resp = await fetch("/scratchpad", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ revision: pad.revision, notes: notes }) });
         if (!resp.ok) throw new Error(await resp.text());
-        Object.assign(pad, await resp.json()); live.textContent = "Note saved";
+        Object.assign(pad, await resp.json()); row.note = pad.notes.find(function (note) { return note.id === row.note.id; }); editor.dataset.savedText = text; live.textContent = "Note saved";
+        label.textContent = "Saved";
+        setTimeout(function () { label.textContent = "Save changes"; }, 1200);
       }
-      renderNotes();
-    } catch (error) { live.textContent = "Note save failed"; alert(error.message || "Note save failed"); button.disabled = false; }
+      if (row.draft) renderNotes();
+    } catch (error) { live.textContent = "Note save failed"; status.textContent = error.message || "Note save failed"; label.textContent = row.draft ? "Create note" : "Save changes"; button.disabled = false; }
   }
   async function deleteRow(row, button) {
-    if (!row.note || !confirm("Delete " + row.note.id + "?")) return;
+    if (!row.note || !confirmDiscardNotes() || !confirm("Delete " + row.note.id + "?")) return;
     button.disabled = true;
     try {
       const notes = pad.notes.filter(function (note) { return note.id !== row.note.id; });
@@ -364,6 +377,7 @@ document.querySelectorAll("button.docact").forEach(function (btn) {
   window.addEventListener("scroll", scheduleNotePositions, { passive: true });
   window.addEventListener("resize", function () { positionNotesRail(); scheduleNotePositions(); });
   document.addEventListener("keydown", function (event) { if (event.key === "Escape" && !rail.hidden && !draft) closeRail(); });
+  window.addEventListener("beforeunload", function (event) { if (hasDirtyNotes()) { event.preventDefault(); event.returnValue = ""; } });
   positionNotesRail();
   renderNotes();
   if (associated().length) openRail(false);
