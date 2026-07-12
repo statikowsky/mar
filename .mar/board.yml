@@ -8,10 +8,10 @@ columns:
         - T-MAKE-SCRATCHPAD-CONFLICT-OVERWRITE
         - T-MAKE-SYNTAX-HIGHLIGHTING-FOLLOW
     - name: In progress
-      tasks:
-        - T-RELEASE-MAR-V0-5
+      tasks: []
     - name: Done
       tasks:
+        - T-RELEASE-MAR-V0-5
         - T-INDEX-TASK-COLUMNS-PER
         - T-BATCH-SCRATCHPAD-DOCUMENT-REFERENCE
         - T-BENCHMARK-READ-PATHS-BEFORE
