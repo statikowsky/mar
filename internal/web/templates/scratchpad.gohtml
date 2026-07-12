@@ -76,6 +76,11 @@
     return { x: Math.round((clientX - box.left - view.x) / view.scale), y: Math.round((clientY - box.top - view.y) / view.scale) };
   }
   function noteByID(id) { return pad.notes.find(function (note) { return note.id === id; }); }
+  function linkedDocHref(note) { return note.docs && note.docs.length ? "/doc/" + encodeURIComponent(note.docs[0].code) : ""; }
+  function linkedDocActions(note, attribute) {
+    if (!linkedDocHref(note)) return '<button type="button" ' + attribute + '="task">Task</button><button type="button" ' + attribute + '="doc">Doc</button>';
+    return '<a class="scratch-doc-link" href="' + linkedDocHref(note) + '">&larr; Back to ' + note.docs[0].code + "</a>";
+  }
   function cloneNotes() { return JSON.parse(JSON.stringify(pad.notes)); }
   function checkpoint() {
     history.push(cloneNotes());
@@ -135,7 +140,7 @@
       actions.className = "scratch-note-actions";
       const colors = COLORS.map(function (color) { return '<option value="' + color + '"' + (note.color === color ? " selected" : "") + ">" + color + "</option>"; }).join("");
       actions.innerHTML = '<select data-note-action="color" aria-label="Color for ' + note.id + '">' + colors + "</select>" +
-        '<button type="button" data-note-action="task">Task</button><button type="button" data-note-action="doc">Doc</button>';
+        linkedDocActions(note, "data-note-action");
       el.appendChild(actions);
       const resize = document.createElement("span");
       resize.className = "scratch-resize";
@@ -159,7 +164,7 @@
       row.dataset.id = note.id;
       const colors = COLORS.map(function (color) { return '<option value="' + color + '"' + (note.color === color ? " selected" : "") + ">" + color + "</option>"; }).join("");
       row.innerHTML = '<div><strong>' + note.id + "</strong>" + (note.link ? " · " + note.link : "") + '</div><div class="scratch-list-text">' + linkText(note.text) + "</div>" +
-        '<div><button type="button" data-list-action="edit">Edit</button><select data-list-action="color" aria-label="Color for ' + note.id + '">' + colors + '</select><button type="button" data-list-action="duplicate">Duplicate</button><button type="button" data-list-action="task">Task</button><button type="button" data-list-action="doc">Doc</button><button type="button" data-list-action="delete">Delete</button></div>';
+        '<div><button type="button" data-list-action="edit">Edit</button><select data-list-action="color" aria-label="Color for ' + note.id + '">' + colors + '</select><button type="button" data-list-action="duplicate">Duplicate</button>' + linkedDocActions(note, "data-list-action") + '<button type="button" data-list-action="delete">Delete</button></div>';
       listItems.appendChild(row);
     });
     if (!pad.notes.length) listItems.innerHTML = '<p class="scratch-empty">Double-click the canvas or choose Add note to capture an idea.</p>';
@@ -523,6 +528,23 @@
   list.hidden = !listMode;
   document.querySelector('[data-action="view"]').textContent = listMode ? "Canvas view" : "List view";
   render();
+  const requestedNote = new URLSearchParams(location.search).get("note");
+  if (requestedNote && noteByID(requestedNote)) {
+    selected.add(requestedNote);
+    const note = noteByID(requestedNote);
+    if (listMode) {
+      renderList();
+      const row = list.querySelector('[data-id="' + CSS.escape(requestedNote) + '"]');
+      if (row) row.scrollIntoView({ block: "center" });
+    } else {
+      const box = surface.getBoundingClientRect();
+      view.x = box.width / 2 - (note.x + note.width / 2) * view.scale;
+      view.y = box.height / 2 - (note.y + 80) * view.scale;
+      render();
+      const card = plane.querySelector('[data-id="' + CSS.escape(requestedNote) + '"]');
+      if (card) card.focus();
+    }
+  }
 })();
 </script>
 {{end}}

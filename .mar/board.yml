@@ -10,6 +10,7 @@ columns:
       tasks: []
     - name: Done
       tasks:
+        - T-IMPROVE-LINKED-DOCUMENT-NOTE
         - T-ADD-ANCHORED-SCRATCHPAD-RAIL
         - T-SCRATCHPAD-IN-DOCS
         - T-IMPLEMENT-SCRATCHPAD-MVP

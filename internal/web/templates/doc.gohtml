@@ -242,14 +242,12 @@ document.querySelectorAll("button.docact").forEach(function (btn) {
   function associated() { return pad.notes.filter(refFor); }
   function openRail(focus) {
     rail.hidden = false;
-    document.querySelector(".doc-layout").classList.add("has-notes");
     toggle.setAttribute("aria-expanded", "true");
     try { localStorage.setItem(storageKey, "open"); } catch (_) {}
     if (focus) rail.querySelector("h2").focus();
   }
   function closeRail() {
     rail.hidden = true;
-    document.querySelector(".doc-layout").classList.remove("has-notes");
     toggle.setAttribute("aria-expanded", "false");
     draft = null;
     try { localStorage.removeItem(storageKey); } catch (_) {}
@@ -314,8 +312,9 @@ document.querySelectorAll("button.docact").forEach(function (btn) {
     newDraft({ block: nearest.dataset.noteBlock, quote: nearest.textContent.trim().replace(/\s+/g, " ").slice(0, 160) });
   });
   document.addEventListener("keydown", function (event) { if (event.key === "Escape" && !rail.hidden && !draft) closeRail(); });
-  try { if (localStorage.getItem(storageKey) === "open") openRail(false); } catch (_) {}
   renderNotes();
+  if (associated().length) openRail(false);
+  else try { if (localStorage.getItem(storageKey) === "open") openRail(false); } catch (_) {}
 })();
 </script>
 {{end}}

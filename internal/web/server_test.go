@@ -119,7 +119,7 @@ func TestScratchpadPageAndIndexLink(t *testing.T) {
 	if code != http.StatusOK {
 		t.Fatalf("status = %d", code)
 	}
-	for _, want := range []string{`<body class="scratch-page">`, `id="scratch-surface"`, `window.SCRATCHPAD_STATE`, `aria-label="Scratchpad notes"`} {
+	for _, want := range []string{`<body class="scratch-page">`, `id="scratch-surface"`, `window.SCRATCHPAD_STATE`, `aria-label="Scratchpad notes"`, `new URLSearchParams(location.search).get("note")`, `linkedDocHref(note)`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("scratchpad page missing %q:\n%s", want, body)
 		}
@@ -165,7 +165,7 @@ func TestDocumentPageIncludesAnchoredNotesRail(t *testing.T) {
 	if code != http.StatusOK {
 		t.Fatalf("status = %d", code)
 	}
-	for _, want := range []string{`class="doc-annotation-gutter"`, `id="doc-notes-rail"`, `data-doc-code="DOC-ANNOTATED"`} {
+	for _, want := range []string{`class="doc-annotation-gutter"`, `id="doc-notes-rail"`, `data-doc-code="DOC-ANNOTATED"`, `if (associated().length) openRail(false)`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("document page missing %q", want)
 		}
