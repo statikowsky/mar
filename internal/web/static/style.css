@@ -901,7 +901,7 @@ body.scratch-page .project-path { flex: 0 0 auto; align-self: flex-start; margin
   display: block; width: 100%; min-height: 90px; resize: vertical; border: 1px solid var(--accent); border-radius: 5px;
   padding: 6px 7px; background: var(--surface); color: var(--fg); font: 14px/1.45 var(--ui-font);
 }
-.scratch-note-actions { display: none; align-items: center; gap: 4px; margin-top: 9px; }
+.scratch-note-actions { display: none; align-items: center; flex-wrap: wrap; gap: 4px; margin-top: 9px; }
 .scratch-note.selected .scratch-note-actions, .scratch-note:focus-within .scratch-note-actions { display: flex; }
 .scratch-note-actions button, .scratch-note-actions select { padding: 3px 6px; font-size: 10px; }
 .ui-icon { display: block; flex: 0 0 auto; }

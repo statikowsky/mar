@@ -11,6 +11,7 @@ columns:
       tasks: []
     - name: Done
       tasks:
+        - T-CLARIFY-SCRATCHPAD-NOTE-ACTIONS
         - T-UNIFY-REMAINING-SCRATCHPAD-NOTE
         - T-CLARIFY-DOCUMENT-NOTE-SAVE
         - T-UNIFY-NOTE-CONTROLS-ACROSS

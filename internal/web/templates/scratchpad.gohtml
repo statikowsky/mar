@@ -82,7 +82,7 @@
       : "";
   }
   function linkedDocActions(note, attribute) {
-    if (!linkedDocHref(note)) return '<button type="button" class="note-action-control" ' + attribute + '="task">Task</button><button type="button" class="note-action-control" ' + attribute + '="doc">Doc</button>';
+    if (!linkedDocHref(note)) return '<button type="button" class="note-action-control" ' + attribute + '="task">' + window.marIcon("list-todo") + '<span>Create task</span></button><button type="button" class="note-action-control" ' + attribute + '="doc">' + window.marIcon("file-plus-2") + '<span>Create document</span></button>';
     return '<a class="note-action-control note-action-link" href="' + linkedDocHref(note) + '" aria-label="Open ' + note.docs[0].code + '" title="Open ' + note.docs[0].code + '">' + window.marIcon("file-text") + '<span>Open document</span></a>';
   }
   function cloneNotes() { return JSON.parse(JSON.stringify(pad.notes)); }
@@ -144,7 +144,7 @@
       actions.className = "scratch-note-actions";
       const colors = COLORS.map(function (color) { return '<option value="' + color + '"' + (note.color === color ? " selected" : "") + ">" + color + "</option>"; }).join("");
       actions.innerHTML = '<select class="note-action-control note-action-select" data-note-action="color" aria-label="Color for ' + note.id + '">' + colors + "</select>" +
-        linkedDocActions(note, "data-note-action") + '<button type="button" class="note-action-control note-icon-button danger" data-note-action="delete" aria-label="Delete ' + note.id + '" title="Delete note">' + window.marIcon("trash-2") + "</button>";
+        '<button type="button" class="note-action-control" data-note-action="edit">' + window.marIcon("pencil") + '<span>Edit</span></button>' + linkedDocActions(note, "data-note-action") + '<button type="button" class="note-action-control note-icon-button danger" data-note-action="delete" aria-label="Delete ' + note.id + '" title="Delete note">' + window.marIcon("trash-2") + "</button>";
       el.appendChild(actions);
       const resize = document.createElement("span");
       resize.className = "scratch-resize";
@@ -168,7 +168,7 @@
       row.dataset.id = note.id;
       const colors = COLORS.map(function (color) { return '<option value="' + color + '"' + (note.color === color ? " selected" : "") + ">" + color + "</option>"; }).join("");
       row.innerHTML = '<div><strong>' + note.id + "</strong>" + (note.link ? " · " + note.link : "") + '</div><div class="scratch-list-text">' + linkText(note.text) + "</div>" +
-        '<div><button type="button" class="note-action-control" data-list-action="edit">Edit</button><select class="note-action-control note-action-select" data-list-action="color" aria-label="Color for ' + note.id + '">' + colors + '</select><button type="button" class="note-action-control" data-list-action="duplicate">Duplicate</button>' + linkedDocActions(note, "data-list-action") + '<button type="button" class="note-action-control note-icon-button danger" data-list-action="delete" aria-label="Delete ' + note.id + '" title="Delete note">' + window.marIcon("trash-2") + "</button></div>";
+        '<div><button type="button" class="note-action-control" data-list-action="edit">' + window.marIcon("pencil") + '<span>Edit</span></button><select class="note-action-control note-action-select" data-list-action="color" aria-label="Color for ' + note.id + '">' + colors + '</select><button type="button" class="note-action-control" data-list-action="duplicate">Duplicate</button>' + linkedDocActions(note, "data-list-action") + '<button type="button" class="note-action-control note-icon-button danger" data-list-action="delete" aria-label="Delete ' + note.id + '" title="Delete note">' + window.marIcon("trash-2") + "</button></div>";
       listItems.appendChild(row);
     });
     if (!pad.notes.length) listItems.innerHTML = '<p class="scratch-empty">Double-click the canvas or choose Add note to capture an idea.</p>';
@@ -465,6 +465,7 @@
   });
   plane.addEventListener("click", function (e) {
     const control = e.target.closest("[data-note-action]"); const action = control && control.dataset.noteAction; const noteEl = e.target.closest(".scratch-note"); if (!action || !noteEl) return;
+    if (action === "edit") startEdit(noteEl.dataset.id);
     if (action === "task" || action === "doc") promote(noteEl.dataset.id, action);
     if (action === "delete") { selected = new Set([noteEl.dataset.id]); deleteSelected(); }
   });
@@ -475,7 +476,7 @@
   });
   list.addEventListener("click", function (e) {
     const row = e.target.closest(".scratch-list-row"); if (!row) return;
-    const action = e.target.dataset.listAction;
+    const control = e.target.closest("[data-list-action]"); const action = control && control.dataset.listAction;
     if (action === "edit") { const note = noteByID(row.dataset.id); const text = prompt("Edit " + note.id, note.text); if (text != null && text.trim() && text.trim() !== note.text) { checkpoint(); note.text = text.trim(); scheduleSave(); render(); } }
     if (action === "duplicate") { selected = new Set([row.dataset.id]); duplicateSelected(); }
     if (action === "delete") { selected = new Set([row.dataset.id]); deleteSelected(); }
