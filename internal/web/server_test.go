@@ -136,6 +136,46 @@ func TestScratchpadPageAndIndexLink(t *testing.T) {
 	}
 }
 
+func TestPagesUseSharedActionIcons(t *testing.T) {
+	srv, s := newTestServer(t)
+	doc, err := s.CreateDoc("ICONS", "Icons", "design", "Body")
+	if err != nil {
+		t.Fatal(err)
+	}
+	task, err := s.CreateTask("Icons", "Body", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	pages := []struct {
+		path  string
+		wants []string
+	}{
+		{"/", []string{`data-mar-icon="file-plus-2"`, `data-mar-icon="archive"`}},
+		{"/board", []string{`data-mar-icon="square-plus"`, `data-mar-icon="x"`}},
+		{"/doc/" + doc.Code, []string{`data-mar-icon="arrow-left"`, `data-mar-icon="sticky-note"`, `data-mar-icon="pencil"`, `data-mar-icon="archive"`, `data-mar-icon="save"`}},
+		{"/task/" + task.Code, []string{`data-mar-icon="arrow-left"`, `data-mar-icon="archive"`}},
+		{"/scratchpad", []string{`data-mar-icon="undo-2"`, `data-mar-icon="redo-2"`, `data-mar-icon="copy"`, `data-mar-icon="zoom-in"`, `data-mar-icon="scan"`}},
+	}
+	for _, page := range pages {
+		code, body := get(t, srv.URL+page.path)
+		if code != http.StatusOK {
+			t.Fatalf("GET %s status = %d", page.path, code)
+		}
+		for _, want := range page.wants {
+			if !strings.Contains(body, want) {
+				t.Errorf("GET %s missing %q", page.path, want)
+			}
+		}
+		if !strings.Contains(body, `window.marHydrateIcons`) {
+			t.Errorf("GET %s missing shared icon hydrator", page.path)
+		}
+	}
+	code, fragment := get(t, srv.URL+"/task/"+task.Code+"?fragment=1")
+	if code != http.StatusOK || !strings.Contains(fragment, `data-mar-icon="save"`) {
+		t.Errorf("task modal editor missing shared save icon")
+	}
+}
+
 func TestScratchpadCreateAndSaveRoutes(t *testing.T) {
 	srv, _ := newTestServer(t)
 	code, body := postJSON(t, srv.URL+"/scratchpad/note", `{"text":"Idea","x":20,"y":30,"color":"blue"}`)

@@ -487,6 +487,7 @@ a { color: var(--accent); }
 .wikilink-missing { color: var(--muted); border-bottom: 1px dashed var(--muted); }
 
 .subtitle { color: var(--muted); margin-bottom: 24px; }
+.subtitle a { display: inline-flex; align-items: center; gap: 5px; }
 .small { font-size: 13px; color: var(--muted); }
 .meta { font-size: 13px; color: var(--muted); }
 .code-chip {
@@ -679,10 +680,11 @@ table.toc th.sortable[data-dir="desc"]::after { content: " \2193"; }
 .toc-search { font-size: 13px; color: var(--fg); background: var(--btn-bg); border: 1px solid var(--line); border-radius: 6px; padding: 4px 10px; min-width: 220px; margin-left: auto; }
 
 /* ===== document actions ===== */
-.docact, .taskact { font-size: 12px; font-weight: 600; color: var(--muted); background: var(--btn-bg); border: 1px solid var(--line); border-radius: 6px; padding: 3px 10px; cursor: pointer; margin-left: 6px; }
+.docact, .taskact { min-height: 28px; display: inline-flex; align-items: center; justify-content: center; gap: 5px; font-size: 12px; font-weight: 600; line-height: 1.2; color: var(--muted); background: var(--btn-bg); border: 1px solid var(--line); border-radius: 6px; padding: 3px 10px; cursor: pointer; margin-left: 6px; text-decoration: none; }
 .docact:hover, .taskact:hover { background: var(--btn-bg-hover); color: var(--fg); }
 .docact.danger, .taskact.danger { color: var(--danger); }
 .docact.danger:hover, .taskact.danger:hover { background: var(--danger-soft); }
+.docact.icon-only, .taskact.icon-only { width: 28px; padding: 3px; }
 .doc-actions { margin: 0 0 18px; }
 .doc-actions .docact, .doc-actions .taskact { margin-left: 0; margin-right: 6px; }
 .archived-tag { font-size: 11px; font-weight: 600; color: var(--tag-board-fg); background: var(--tag-board-bg); padding: 1px 8px; border-radius: 10px; }
@@ -774,7 +776,7 @@ details.archived-section > summary { cursor: pointer; font-size: 13px; font-weig
 .modal-backdrop { position: fixed; inset: 0; background: var(--backdrop); display: flex; align-items: flex-start; justify-content: center; padding: 60px 20px; z-index: 100; overflow-y: auto; }
 .modal-backdrop[hidden] { display: none; }
 .modal { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 12px 40px var(--shadow-strong); max-width: 760px; width: 100%; padding: 24px 32px 32px; position: relative; }
-.modal-close { position: absolute; top: 12px; right: 16px; background: none; border: none; font-size: 24px; line-height: 1; color: var(--muted); cursor: pointer; padding: 4px 8px; }
+.modal-close { position: absolute; top: 12px; right: 16px; width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; background: none; border: none; color: var(--muted); cursor: pointer; padding: 4px; }
 .modal-close:hover { color: var(--fg); }
 .modal-body .subtitle { display: none; }
 
@@ -858,12 +860,14 @@ body.scratch-page .project-path { flex: 0 0 auto; align-self: flex-start; margin
 .scratch-action, .scratch-note-actions button, .scratch-note-actions select,
 .scratch-list-row button, .scratch-list-row select, .scratch-conflict button {
   border: 1px solid var(--line); border-radius: 6px; background: var(--btn-bg); color: var(--fg);
+  min-height: 28px; display: inline-flex; align-items: center; justify-content: center; gap: 5px;
   padding: 5px 9px; font: 600 12px/1.2 var(--ui-font); cursor: pointer;
 }
 .scratch-action:hover, .scratch-note-actions button:hover, .scratch-list-row button:hover { background: var(--btn-bg-hover); }
 .scratch-action:disabled { opacity: 0.45; cursor: default; }
 .scratch-action.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
 .scratch-action.danger:not(:disabled) { color: var(--danger); }
+.scratch-action.icon-only { width: 28px; padding: 4px; }
 #scratch-save-state { min-width: 68px; color: var(--muted); font-size: 12px; text-align: right; }
 .scratch-conflict { flex: 0 0 auto; margin: 0 0 10px; padding: 8px 12px; border: 1px solid var(--warn); border-radius: 7px; background: var(--warn-soft); color: var(--fg); font-size: 13px; }
 .scratch-conflict[hidden] { display: none; }

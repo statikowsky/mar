@@ -1,7 +1,7 @@
 {{define "content"}}
 <h1>Board</h1>
-<p class="subtitle"><a href="/">&larr; back to docs</a></p>
-<p class="doc-actions"><button type="button" id="new-card" class="taskact primary">New card</button></p>
+<p class="subtitle"><a href="/"><span data-mar-icon="arrow-left"></span>back to docs</a></p>
+<p class="doc-actions"><button type="button" id="new-card" class="taskact primary"><span data-mar-icon="square-plus"></span>New card</button></p>
 <div class="board">
   {{range .Columns}}
   <div class="board-col" data-column="{{.Name}}">
@@ -28,8 +28,8 @@
       <td><a href="/task/{{.Code}}">{{.Title}}</a></td>
       <td>{{.ColumnName}}</td>
       <td class="actions">
-        <button class="taskact" data-code="{{.Code}}" data-action="unarchive">Unarchive</button>
-        <button class="taskact danger" data-code="{{.Code}}" data-action="delete">Delete</button>
+        <button class="taskact" data-code="{{.Code}}" data-action="unarchive"><span data-mar-icon="archive-restore"></span>Unarchive</button>
+        <button class="taskact danger" data-code="{{.Code}}" data-action="delete"><span data-mar-icon="trash-2"></span>Delete</button>
       </td>
     </tr>
     {{end}}
@@ -39,7 +39,7 @@
 
 <div class="modal-backdrop" id="task-modal" hidden>
   <div class="modal" role="dialog" aria-modal="true">
-    <button class="modal-close" type="button" aria-label="Close">&times;</button>
+    <button class="modal-close" type="button" aria-label="Close" title="Close"><span data-mar-icon="x"></span></button>
     <div class="modal-body"></div>
   </div>
 </div>
@@ -135,6 +135,7 @@
       })
       .then(function (html) {
         modalBody.innerHTML = html;
+        window.marHydrateIcons(modalBody);
         modal.hidden = false;
         if (location.hash !== "#task/" + code) {
           history.pushState(null, "", "#task/" + code);
@@ -152,6 +153,7 @@
       })
       .then(function (html) {
         modalBody.innerHTML = html;
+        window.marHydrateIcons(modalBody);
         modal.hidden = false;
         editorDirty = false;
         const t = modalBody.querySelector(".edit-title");
@@ -319,6 +321,7 @@
       .then(function (html) {
         editorDirty = false;
         modalBody.innerHTML = html;
+        window.marHydrateIcons(modalBody);
       })
       .catch(function (err) { alert(err.message || "Save failed"); });
   });
@@ -326,7 +329,7 @@
   function reloadFragment(code) {
     fetch("/task/" + encodeURIComponent(code) + "?fragment=1")
       .then(function (resp) { return resp.ok ? resp.text() : null; })
-      .then(function (html) { if (html != null) modalBody.innerHTML = html; })
+      .then(function (html) { if (html != null) { modalBody.innerHTML = html; window.marHydrateIcons(modalBody); } })
       .catch(function () { /* leave as-is */ });
   }
 })();

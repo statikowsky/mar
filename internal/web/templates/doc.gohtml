@@ -1,15 +1,15 @@
 {{define "content"}}
-<p class="subtitle"><a href="/">&larr; back to docs</a></p>
+<p class="subtitle"><a href="/"><span data-mar-icon="arrow-left"></span>back to docs</a></p>
 <h1>{{.Doc.Title}}</h1>
 <p class="meta"><button type="button" class="code-chip" data-copy-code="{{.Doc.Code}}" aria-label="Copy {{.Doc.Code}}" title="Copy {{.Doc.Code}}">{{.Doc.Code}}</button> · <span class="typetag {{.Doc.Type}}">{{.Doc.Type}}</span> · updated {{.Updated}}{{if eq .Doc.Status "archived"}} · <span class="archived-tag">archived</span>{{end}}</p>
 <p class="doc-actions">
-  <button class="docact" type="button" id="doc-notes-toggle" aria-controls="doc-notes-rail" aria-expanded="false">Notes</button>
+  <button class="docact" type="button" id="doc-notes-toggle" aria-controls="doc-notes-rail" aria-expanded="false"><span data-mar-icon="sticky-note"></span><span data-notes-toggle-label>Notes</span></button>
   {{if eq .Doc.Status "archived"}}
-  <button class="docact" data-code="{{.Doc.Code}}" data-action="unarchive">Unarchive</button>
-  <button class="docact danger" data-code="{{.Doc.Code}}" data-action="delete">Delete</button>
+  <button class="docact" data-code="{{.Doc.Code}}" data-action="unarchive"><span data-mar-icon="archive-restore"></span>Unarchive</button>
+  <button class="docact danger" data-code="{{.Doc.Code}}" data-action="delete"><span data-mar-icon="trash-2"></span>Delete</button>
   {{else}}
-  <button class="docact" data-code="{{.Doc.Code}}" data-action="edit">Edit</button>
-  <button class="docact" data-code="{{.Doc.Code}}" data-action="archive">Archive</button>
+  <button class="docact" data-code="{{.Doc.Code}}" data-action="edit"><span data-mar-icon="pencil"></span>Edit</button>
+  <button class="docact" data-code="{{.Doc.Code}}" data-action="archive"><span data-mar-icon="archive"></span>Archive</button>
   {{end}}
 </p>
 <div class="doc-layout">
@@ -34,7 +34,7 @@
     <div class="edit-preview rendered-body" aria-label="Preview">{{.Body}}</div>
   </div>
   <div class="editor-actions">
-    <button type="submit" class="docact primary">Save</button>
+    <button type="submit" class="docact primary"><span data-mar-icon="save"></span>Save</button>
     <button type="button" class="docact" data-action="cancel">Cancel</button>
   </div>
 </form>
@@ -54,7 +54,7 @@
 </main>
 <button type="button" class="doc-annotation-gutter" aria-label="Create note at this document position" data-tooltip="Create note"></button>
 <aside id="doc-notes-rail" class="doc-notes-rail" data-doc-code="{{.Doc.Code}}" aria-label="Notes for {{.Doc.Code}}" hidden>
-  <div class="doc-notes-head"><h2 tabindex="-1">Notes</h2><div><button type="button" class="docact" data-notes-add>Add note</button> <button type="button" class="docact" data-notes-close>Close</button></div></div>
+  <div class="doc-notes-head"><h2 tabindex="-1">Notes</h2><div><button type="button" class="docact" data-notes-add><span data-mar-icon="message-square-plus"></span>Add note</button> <button type="button" class="docact icon-only" data-notes-close aria-label="Close notes" title="Close notes"><span data-mar-icon="x"></span></button></div></div>
   <p class="doc-notes-empty">No notes for this document yet.</p>
   <div class="doc-notes-list"></div>
   <p class="sr-only" aria-live="polite" data-notes-live></p>
@@ -275,7 +275,7 @@ document.querySelectorAll("button.docact").forEach(function (btn) {
     list.replaceChildren();
     const notes = associated();
     empty.hidden = notes.length > 0 || !!draft;
-    toggle.textContent = notes.length ? "Notes · " + notes.length : "Notes";
+    toggle.querySelector("[data-notes-toggle-label]").textContent = notes.length ? "Notes · " + notes.length : "Notes";
     const rows = draft ? [{ draft: true, text: "", ref: draft }] : [];
     notes.forEach(function (note) { rows.push({ note: note, text: note.text, ref: refFor(note) }); });
     rows.forEach(function (row) {

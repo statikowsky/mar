@@ -1,27 +1,27 @@
 {{define "content"}}
 <header class="scratch-head">
   <div>
-    <p class="subtitle"><a href="/">&larr; back to docs</a></p>
+    <p class="subtitle"><a href="/"><span data-mar-icon="arrow-left"></span>back to docs</a></p>
     <h1>Scratchpad</h1>
   </div>
   <div class="scratch-toolbar" role="toolbar" aria-label="Scratchpad tools">
-    <button type="button" class="scratch-action primary" data-action="add">Add note</button>
-    <button type="button" class="scratch-action" data-action="view">List view</button>
-    <button type="button" class="scratch-action" data-action="undo" disabled>Undo</button>
-    <button type="button" class="scratch-action" data-action="redo" disabled>Redo</button>
-    <button type="button" class="scratch-action" data-action="duplicate" disabled>Duplicate</button>
-    <button type="button" class="scratch-action danger" data-action="delete" disabled>Delete</button>
-    <button type="button" class="scratch-action" data-action="zoom-out" aria-label="Zoom out">−</button>
+    <button type="button" class="scratch-action primary" data-action="add"><span data-mar-icon="sticky-note"></span>Add note</button>
+    <button type="button" class="scratch-action" data-action="view"><span data-mar-icon="list"></span><span data-view-label>List view</span></button>
+    <button type="button" class="scratch-action" data-action="undo" disabled><span data-mar-icon="undo-2"></span>Undo</button>
+    <button type="button" class="scratch-action" data-action="redo" disabled><span data-mar-icon="redo-2"></span>Redo</button>
+    <button type="button" class="scratch-action" data-action="duplicate" disabled><span data-mar-icon="copy"></span>Duplicate</button>
+    <button type="button" class="scratch-action danger" data-action="delete" disabled><span data-mar-icon="trash-2"></span>Delete</button>
+    <button type="button" class="scratch-action icon-only" data-action="zoom-out" aria-label="Zoom out" title="Zoom out"><span data-mar-icon="zoom-out"></span></button>
     <button type="button" class="scratch-action" data-action="zoom-reset">100%</button>
-    <button type="button" class="scratch-action" data-action="zoom-in" aria-label="Zoom in">+</button>
-    <button type="button" class="scratch-action" data-action="fit">Fit</button>
+    <button type="button" class="scratch-action icon-only" data-action="zoom-in" aria-label="Zoom in" title="Zoom in"><span data-mar-icon="zoom-in"></span></button>
+    <button type="button" class="scratch-action" data-action="fit"><span data-mar-icon="scan"></span>Fit</button>
     <span id="scratch-save-state" role="status" aria-live="polite">Saved</span>
   </div>
 </header>
 <div class="scratch-conflict" role="alert" hidden>
   Scratchpad changed elsewhere.
-  <button type="button" data-action="reload">Reload remote</button>
-  <button type="button" data-action="overwrite">Keep my version</button>
+  <button type="button" data-action="reload"><span data-mar-icon="refresh-cw"></span>Reload remote</button>
+  <button type="button" data-action="overwrite"><span data-mar-icon="upload"></span>Keep my version</button>
 </div>
 <main class="scratch-workspace">
   <div id="scratch-surface" tabindex="0" aria-label="Scratchpad notes">
@@ -168,7 +168,7 @@
       row.dataset.id = note.id;
       const colors = COLORS.map(function (color) { return '<option value="' + color + '"' + (note.color === color ? " selected" : "") + ">" + color + "</option>"; }).join("");
       row.innerHTML = '<div><strong>' + note.id + "</strong>" + (note.link ? " · " + note.link : "") + '</div><div class="scratch-list-text">' + linkText(note.text) + "</div>" +
-        '<div><button type="button" class="note-action-control" data-list-action="edit">' + window.marIcon("pencil") + '<span>Edit</span></button><select class="note-action-control note-action-select" data-list-action="color" aria-label="Color for ' + note.id + '">' + colors + '</select><button type="button" class="note-action-control" data-list-action="duplicate">Duplicate</button>' + linkedDocActions(note, "data-list-action") + '<button type="button" class="note-action-control note-icon-button danger" data-list-action="delete" aria-label="Delete ' + note.id + '" title="Delete note">' + window.marIcon("trash-2") + "</button></div>";
+        '<div><button type="button" class="note-action-control" data-list-action="edit">' + window.marIcon("pencil") + '<span>Edit</span></button><select class="note-action-control note-action-select" data-list-action="color" aria-label="Color for ' + note.id + '">' + colors + '</select><button type="button" class="note-action-control" data-list-action="duplicate">' + window.marIcon("copy") + '<span>Duplicate</span></button>' + linkedDocActions(note, "data-list-action") + '<button type="button" class="note-action-control note-icon-button danger" data-list-action="delete" aria-label="Delete ' + note.id + '" title="Delete note">' + window.marIcon("trash-2") + "</button></div>";
       listItems.appendChild(row);
     });
     if (!pad.notes.length) listItems.innerHTML = '<p class="scratch-empty">Double-click the canvas or choose Add note to capture an idea.</p>';
@@ -488,7 +488,7 @@
     checkpoint(); noteByID(row.dataset.id).color = e.target.value; scheduleSave(); render();
   });
   document.querySelector(".scratch-toolbar").addEventListener("click", function (e) {
-    const action = e.target.dataset.action; if (!action) return;
+    const control = e.target.closest("[data-action]"); const action = control && control.dataset.action; if (!action) return;
     const box = surface.getBoundingClientRect();
     if (action === "add") { const point = screenToWorld(box.left + box.width / 2, box.top + box.height / 2); createNote(point.x, point.y).catch(function () { announce("Could not create note"); }); }
     if (action === "delete") deleteSelected();
@@ -499,11 +499,12 @@
     if (action === "zoom-out") setZoom(view.scale / 1.2);
     if (action === "zoom-reset") setZoom(1);
     if (action === "fit") fitAll();
-    if (action === "view") { listMode = !listMode; surface.hidden = listMode; list.hidden = !listMode; e.target.textContent = listMode ? "Canvas view" : "List view"; renderList(); }
+    if (action === "view") { listMode = !listMode; surface.hidden = listMode; list.hidden = !listMode; updateViewButton(); renderList(); }
   });
   conflict.addEventListener("click", async function (e) {
-    if (e.target.dataset.action === "reload") { pad = await fetch("/scratchpad/data", { cache: "no-store" }).then(function (r) { return r.json(); }); conflicted = false; conflict.hidden = true; history = []; future = []; setSaveStatus("Saved"); render(); }
-    if (e.target.dataset.action === "overwrite") saveNow(true);
+    const control = e.target.closest("[data-action]"); const action = control && control.dataset.action;
+    if (action === "reload") { pad = await fetch("/scratchpad/data", { cache: "no-store" }).then(function (r) { return r.json(); }); conflicted = false; conflict.hidden = true; history = []; future = []; setSaveStatus("Saved"); render(); }
+    if (action === "overwrite") saveNow(true);
   });
   document.addEventListener("keydown", function (e) {
     if (e.target.matches("textarea,input,select")) return;
@@ -532,7 +533,14 @@
   }, 2000);
   surface.hidden = listMode;
   list.hidden = !listMode;
-  document.querySelector('[data-action="view"]').textContent = listMode ? "Canvas view" : "List view";
+  function updateViewButton() {
+    const button = document.querySelector('[data-action="view"]');
+    const icon = button.querySelector("[data-mar-icon]");
+    icon.dataset.marIcon = listMode ? "layout-grid" : "list";
+    window.marHydrateIcons(button);
+    button.querySelector("[data-view-label]").textContent = listMode ? "Canvas view" : "List view";
+  }
+  updateViewButton();
   render();
   const requestedNote = new URLSearchParams(location.search).get("note");
   if (requestedNote && noteByID(requestedNote)) {

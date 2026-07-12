@@ -7,11 +7,11 @@ columns:
         - T-UPGRADE-GITHUB-ACTIONS-OFF
         - T-MAKE-SCRATCHPAD-CONFLICT-OVERWRITE
         - T-MAKE-SYNTAX-HIGHLIGHTING-FOLLOW
-        - T-ADD-CONSISTENT-ICONS-TO
     - name: In progress
       tasks: []
     - name: Done
       tasks:
+        - T-ADD-CONSISTENT-ICONS-TO
         - T-SHOW-ICON-ON-DOCUMENT
         - T-CLARIFY-SCRATCHPAD-NOTE-ACTIONS
         - T-UNIFY-REMAINING-SCRATCHPAD-NOTE

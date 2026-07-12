@@ -14,7 +14,7 @@
 
 <h2>Contents</h2>
 <div class="toc-controls">
-  <a class="docact primary" href="/doc/new">New document</a>
+  <a class="docact primary" href="/doc/new"><span data-mar-icon="file-plus-2"></span>New document</a>
   <input type="search" id="doc-search" class="toc-search" placeholder="Search title or code…" aria-label="Search documents">
   <label class="toc-filter">Type
     <select id="doc-type-filter"><option value="">All</option></select>
@@ -34,7 +34,7 @@
     <td><a href="/doc/{{.Code}}">{{.Title}}</a></td>
     <td><span class="typetag {{.Type}}">{{.Type}}</span></td>
     <td class="date" data-sort="{{.UpdatedAt}}">{{.Updated}}</td>
-    <td class="actions"><button class="docact" data-code="{{.Code}}" data-action="archive">Archive</button></td>
+    <td class="actions"><button class="docact" data-code="{{.Code}}" data-action="archive"><span data-mar-icon="archive"></span>Archive</button></td>
   </tr>
   {{end}}
 </table>
@@ -57,8 +57,8 @@
       <td><span class="typetag {{.Type}}">{{.Type}}</span></td>
       <td class="date" data-sort="{{.UpdatedAt}}">{{.Updated}}</td>
       <td class="actions">
-        <button class="docact" data-code="{{.Code}}" data-action="unarchive">Unarchive</button>
-        <button class="docact danger" data-code="{{.Code}}" data-action="delete">Delete</button>
+        <button class="docact" data-code="{{.Code}}" data-action="unarchive"><span data-mar-icon="archive-restore"></span>Unarchive</button>
+        <button class="docact danger" data-code="{{.Code}}" data-action="delete"><span data-mar-icon="trash-2"></span>Delete</button>
       </td>
     </tr>
     {{end}}

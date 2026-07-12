@@ -1,14 +1,14 @@
 {{define "content"}}
-<p class="subtitle"><a href="/board">&larr; back to board</a></p>
+<p class="subtitle"><a href="/board"><span data-mar-icon="arrow-left"></span>back to board</a></p>
 <h1>{{.Task.Title}}</h1>
 <p class="meta"><button type="button" class="code-chip" data-copy-code="{{.Task.Code}}" aria-label="Copy {{.Task.Code}}" title="Copy {{.Task.Code}}">{{.Task.Code}}</button> · {{.ColumnName}}{{if eq .Task.Status "archived"}} · <span class="archived-tag">archived</span>{{end}}</p>
 <p class="doc-actions">
   {{if eq .Task.Status "archived"}}
-  <button class="taskact" data-code="{{.Task.Code}}" data-action="unarchive">Unarchive</button>
-  <button class="taskact danger" data-code="{{.Task.Code}}" data-action="delete">Delete</button>
+  <button class="taskact" data-code="{{.Task.Code}}" data-action="unarchive"><span data-mar-icon="archive-restore"></span>Unarchive</button>
+  <button class="taskact danger" data-code="{{.Task.Code}}" data-action="delete"><span data-mar-icon="trash-2"></span>Delete</button>
   {{else}}
-  {{if .Modal}}<button class="taskact" data-code="{{.Task.Code}}" data-action="edit">Edit</button>{{end}}
-  <button class="taskact" data-code="{{.Task.Code}}" data-action="archive">Archive</button>
+  {{if .Modal}}<button class="taskact" data-code="{{.Task.Code}}" data-action="edit"><span data-mar-icon="pencil"></span>Edit</button>{{end}}
+  <button class="taskact" data-code="{{.Task.Code}}" data-action="archive"><span data-mar-icon="archive"></span>Archive</button>
   {{end}}
 </p>
 <div class="rendered-body">{{.Body}}</div>
@@ -20,7 +20,7 @@
     <div class="edit-preview rendered-body" aria-label="Preview">{{.Body}}</div>
   </div>
   <div class="editor-actions">
-    <button type="submit" class="taskact primary">Save</button>
+    <button type="submit" class="taskact primary"><span data-mar-icon="save"></span>Save</button>
     <button type="button" class="taskact" data-action="cancel">Cancel</button>
   </div>
 </form>
