@@ -8,7 +8,8 @@ columns:
         - T-MAKE-SCRATCHPAD-CONFLICT-OVERWRITE
         - T-MAKE-SYNTAX-HIGHLIGHTING-FOLLOW
     - name: In progress
-      tasks: []
+      tasks:
+        - T-RELEASE-V0-5-3
     - name: Done
       tasks:
         - T-ADD-EXPLICIT-UPDATE-CHECK
