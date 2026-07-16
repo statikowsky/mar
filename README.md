@@ -28,6 +28,7 @@ blocks the first launch; clear the quarantine flag once with
 
     mar init      # create ./.mar/ (board.yml, tasks/, docs/)
     mar serve     # browse at http://127.0.0.1:7777 (--no-open for headless)
+    mar update    # check for a newer release
     mar guide     # agent workflow + full command cheatsheet (--json too)
 
 `serve` uses port 7777, or a free port if it's taken; `--port N` forces one.

@@ -4,8 +4,8 @@ package version
 
 import "runtime/debug"
 
-// Version is the mar build version. It defaults to "dev" for go run / go test
-// builds and is set to the git-described version by the Makefile.
+// Version is the mar build version. It defaults to "dev" for local builds and
+// is set by the Makefile or the module metadata embedded by go install.
 var Version = "dev"
 
 func init() {

@@ -128,6 +128,10 @@ Each command takes `--json`. Single-letter aliases shown in parentheses.
 
     mar version                    # also: mar --version, -v
 
+### update
+
+    mar update                     # check GitHub for a newer release
+
 ### guide (g)
 
     mar guide                      # this guide (use --json for {"guide": "..."})

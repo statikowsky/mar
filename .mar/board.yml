@@ -1,7 +1,6 @@
 columns:
     - name: To do
       tasks:
-        - T-ADD-EXPLICIT-UPDATE-CHECK
         - T-MAKE-STORE-MUTATIONS-TRANSACTIONAL
         - T-ADD-DOC-TOUCH-AND
         - T-NORMALIZE-EXPLICIT-DATE-TIMESTAMP
@@ -12,6 +11,7 @@ columns:
       tasks: []
     - name: Done
       tasks:
+        - T-ADD-EXPLICIT-UPDATE-CHECK
         - T-DETECT-VERSION-IN-GO
         - T-RELEASE-MAR-V0-5
         - T-INDEX-TASK-COLUMNS-PER
