@@ -2,7 +2,7 @@
 title: Serve doc-relative images (.mar/docs) in the web UI
 status: active
 created: "2026-07-17T14:17:04.109383Z"
-updated: "2026-07-17T14:17:04.15408Z"
+updated: "2026-07-17T14:19:45.339328Z"
 ---
 Doc bodies can reference images relatively (e.g. `![mockup](img/foo.png)` with
 the file at `.mar/docs/img/foo.png`), but `mar serve` has no route for them —

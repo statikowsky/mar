@@ -8,10 +8,10 @@ columns:
         - T-MAKE-SCRATCHPAD-CONFLICT-OVERWRITE
         - T-MAKE-SYNTAX-HIGHLIGHTING-FOLLOW
     - name: In progress
-      tasks:
-        - T-SERVE-DOC-RELATIVE-IMAGES
+      tasks: []
     - name: Done
       tasks:
+        - T-SERVE-DOC-RELATIVE-IMAGES
         - T-RELEASE-V0-5-3
         - T-ADD-EXPLICIT-UPDATE-CHECK
         - T-DETECT-VERSION-IN-GO
