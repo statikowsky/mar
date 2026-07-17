@@ -100,6 +100,10 @@ func Discover(startDir string) (string, error) {
 
 func (s *Store) Close() error { return nil }
 
+// DocsDir returns the path of the store's docs directory, where doc bodies and
+// their relatively-referenced assets (e.g. docs/img/*.png) live.
+func (s *Store) DocsDir() string { return filepath.Join(s.dir, docsDir) }
+
 func (s *Store) withLock(fn func() error) error {
 	fl := flock.New(filepath.Join(s.dir, lockName))
 	if err := fl.Lock(); err != nil {

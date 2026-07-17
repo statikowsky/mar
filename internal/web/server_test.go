@@ -6,6 +6,8 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -1047,5 +1049,57 @@ func TestFaviconNotServedIndex(t *testing.T) {
 	defer resp.Body.Close()
 	if ct := resp.Header.Get("Content-Type"); strings.HasPrefix(ct, "text/html") {
 		t.Errorf("favicon served HTML (matched the catch-all): %q", ct)
+	}
+}
+
+func TestDocRelativeImageServed(t *testing.T) {
+	srv, s := newTestServer(t)
+	imgDir := filepath.Join(s.DocsDir(), "img")
+	if err := os.MkdirAll(imgDir, 0o755); err != nil {
+		t.Fatalf("MkdirAll: %v", err)
+	}
+	png := "\x89PNG\r\n\x1a\nfake-image-bytes"
+	if err := os.WriteFile(filepath.Join(imgDir, "shot.png"), []byte(png), 0o644); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+
+	code, body := get(t, srv.URL+"/doc/img/shot.png")
+	if code != 200 {
+		t.Fatalf("status = %d, want 200", code)
+	}
+	if body != png {
+		t.Errorf("body = %q, want the image bytes", body)
+	}
+}
+
+func TestDocRelativeImageMissing(t *testing.T) {
+	srv, _ := newTestServer(t)
+	code, _ := get(t, srv.URL+"/doc/img/nope.png")
+	if code != 404 {
+		t.Errorf("status = %d, want 404", code)
+	}
+}
+
+func TestDocAssetDirectoryNotListed(t *testing.T) {
+	srv, s := newTestServer(t)
+	if err := os.MkdirAll(filepath.Join(s.DocsDir(), "img"), 0o755); err != nil {
+		t.Fatalf("MkdirAll: %v", err)
+	}
+	code, _ := get(t, srv.URL+"/doc/img/")
+	if code != 404 {
+		t.Errorf("directory request status = %d, want 404", code)
+	}
+}
+
+func TestDocAssetTraversalRejected(t *testing.T) {
+	srv, _ := newTestServer(t)
+	resp, err := http.Get(srv.URL + "/doc/img/%2e%2e/%2e%2e/board.yml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	b, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode == 200 && strings.Contains(string(b), "columns") {
+		t.Errorf("traversal escaped the docs dir: status=%d body=%q", resp.StatusCode, b)
 	}
 }

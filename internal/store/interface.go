@@ -5,6 +5,7 @@ package store
 type Interface interface {
 	Close() error
 	DataVersion() (int64, error)
+	DocsDir() string
 	Board() ([]BoardColumn, error)
 	BoardView() (BoardView, error)
 	IndexView() (IndexView, error)

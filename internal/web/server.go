@@ -57,6 +57,7 @@ func (srv *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /scratchpad/note/{id}/promote", srv.handlePromoteScratchNote)
 	mux.HandleFunc("GET /doc/new", srv.handleNewDocForm)
 	mux.HandleFunc("GET /doc/{code}", srv.handleDoc)
+	mux.HandleFunc("GET /doc/{path...}", srv.handleDocAsset)
 	mux.HandleFunc("GET /task/new", srv.handleNewTaskForm)
 	mux.HandleFunc("GET /task/{code}", srv.handleTask)
 	mux.HandleFunc("POST /task", srv.handleCreateTask)

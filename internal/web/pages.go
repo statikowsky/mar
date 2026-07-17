@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 	"html/template"
+	"io/fs"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/statikowsky/mar/internal/render"
@@ -108,6 +110,25 @@ func wikiResolver(resolve store.CodeResolver) render.Resolver {
 		}
 		return "/doc/" + code, true
 	}
+}
+
+// handleDocAsset serves files that doc bodies reference relatively (e.g.
+// ![..](img/shot.png) resolving to /doc/img/shot.png) out of the docs dir.
+// os.DirFS plus fs.ValidPath confines lookups to that dir; directories 404
+// rather than listing.
+func (srv *Server) handleDocAsset(w http.ResponseWriter, r *http.Request) {
+	name := r.PathValue("path")
+	fsys := os.DirFS(srv.store.DocsDir())
+	if !fs.ValidPath(name) {
+		http.NotFound(w, r)
+		return
+	}
+	info, err := fs.Stat(fsys, name)
+	if err != nil || info.IsDir() {
+		http.NotFound(w, r)
+		return
+	}
+	http.ServeFileFS(w, r, fsys, name)
 }
 
 func (srv *Server) handleDoc(w http.ResponseWriter, r *http.Request) {
